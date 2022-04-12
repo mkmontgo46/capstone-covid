@@ -53,7 +53,7 @@ def build_atom_lup_4_common_features(dcd_traj,flist = ['protein', 'backbone','si
 
 def metric_4m_mDtraj(dcdObj):
     return {'Rofguration' : md.compute_rg(dcdObj),
-            'density' : md.density(dcdObj),
+            #'density' : md.density(dcdObj),
             'compute_center_of_mass' : md.compute_center_of_mass(dcdObj)
             }
 
@@ -83,7 +83,7 @@ def save_dcdMetric(addon_metrics,fileOut = f'./dcd_ExtractedMetrics.csv'):
                         'compute_center_of_mass_2' : 'COM_z'
                        }
             )
-     .loc[:, ['frame','rofgyration','density',
+     .loc[:, ['frame','rofgyration',
      'rmsd', 
      'COM_x',
      'COM_y',
@@ -256,7 +256,7 @@ def main():
         .assign(distance = lambda df : np.sqrt((np.square(df.x - df.RBD_x) + np.square(df.y - df.RBD_y) + np.square(df.z - df.RBD_z)).astype(float)))
         .sort_values(by = ['distance'],ascending=True)    
     )
-    GLY_chain_ids_next_to_RBD =  [int(s_c[0]) for s_c in GLY_RBD_proximity_df[GLY_RBD_proximity_df.distance <= 4].chain.str.extract(r'chainID_(\d+)').values]
+    GLY_chain_ids_next_to_RBD =  [int(s_c[0]) for s_c in GLY_RBD_proximity_df[GLY_RBD_proximity_df.distance <= 40].chain.str.extract(r'chainID_(\d+)').values]
     #GLY_chain_ids_next_to_RBD, atom_id_LUP.keys()
     print(f'[INFO] Time elapsed for Filtering Glycans based on proximity to RBD :  {round(time() - cur_time,2)} seconds')
 
@@ -292,10 +292,10 @@ def main():
     feature_df = feature_df.drop(['Unnamed: 0'],axis=1)
     
 
-    feature_df = feature_df.assign(feature_chain = lambda df  : df.feature +  df.chainID.astype(str)).rename(columns={'rofgyration': 'ROF', 'density': 'DNS', 'rmsd' : 'RMSD'})
+    feature_df = feature_df.assign(feature_chain = lambda df  : df.feature +  df.chainID.astype(str)).rename(columns={'rofgyration': 'ROF', 'rmsd' : 'RMSD'})
     #print(feature_df.head())
 
-    common_features = ['ROF','DNS','RMSD']
+    common_features = ['ROF','RMSD']
     final_feature_df = pd.DataFrame(columns=['frame'], data = feature_df[feature_df.feature == 'RBD_CA'].frame.to_list())
     for c in common_features:
                 final_feature_df[f'RBD_CA0:{c}'] = feature_df[feature_df.feature_chain == 'RBD_CA0'][c]
