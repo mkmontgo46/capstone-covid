@@ -306,9 +306,20 @@ def main():
             if match_object != None:
                 if int(match_object.group(1)) not in GLY_chain_ids_next_to_RBD:
                     continue
+                    
+            # Calculate distance of substructure from RBD & include in final features
             final_feature_df[f'RBD__2__{f}'] = extract_distance_metric(feature_df[feature_df.feature_chain == 'RBD_CA0'], feature_df[feature_df.feature_chain == f])
+            
+            # Include x, y, and z positions of center of mass of substructure in final features
+            final_feature_df[f'{f}_x'] = feature_df[feature_df.feature_chain == f].COM_x
+            final_feature_df[f'{f}_y'] = feature_df[feature_df.feature_chain == f].COM_y
+            final_feature_df[f'{f}_z'] = feature_df[feature_df.feature_chain == f].COM_z
+            
+            # Include radius of gyration and RMSD in final features
             for c in common_features:
                 final_feature_df[f'{f}:{c}'] = feature_df[feature_df.feature_chain == f][c]
+                
+    # Export final features to csv
     final_feature_df.to_csv(f'{out_dir}/FinalExtractedFeature.csv')
     print(f'[INFO] Feature Extraction converged successfully ==> {out_dir}/FinalExtractedFeature.csv' )
     print(f'[INFO] Total Time elapsed  : {round(time() - start_t,2)} seconds')
