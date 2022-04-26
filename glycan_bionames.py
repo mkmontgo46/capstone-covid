@@ -32,7 +32,7 @@ def get_names():
     return bionames
 
 def gly_4m_featname(featname):
-    return featname.replace(':ROF','').replace('RBD__2__','').replace(':RMSD','')
+    return featname.replace(':ROF','').replace('RBD__2__','').replace(':RMSD','').replace('_x','').replace('_y','').replace('_z','')
 
 def get_elem(featname,elem):
     gly = gly_4m_featname(featname)
