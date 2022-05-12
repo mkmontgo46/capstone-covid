@@ -17,18 +17,23 @@ dependencies:
   - blosc=1.21.0=h9c3ff4c_0
   - bottleneck=1.3.2=py39hdd57654_1
   - brotli=1.0.9=he6710b0_2
+  - brotli-python=1.0.9=py39h5a03fae_7
   - bzip2=1.0.8=h7f98852_4
   - c-ares=1.18.1=h7f98852_0
-  - ca-certificates=2022.3.29=h06a4308_0
-  - certifi=2021.10.8=py39h06a4308_2
+  - ca-certificates=2021.10.8=ha878542_0
+  - certifi=2021.10.8=py39hf3d152e_2
   - cffi=1.15.0=py39hd667e15_1
+  - click=8.1.3=py39hf3d152e_0
   - cycler=0.11.0=pyhd3eb1b0_0
+  - dash=2.4.1=pyhd8ed1ab_0
   - dbus=1.13.18=hb2f20db_0
   - debugpy=1.5.1=py39h295c915_0
   - decorator=5.1.1=pyhd3eb1b0_0
   - defusedxml=0.7.1=pyhd3eb1b0_0
   - entrypoints=0.3=py39h06a4308_0
   - expat=2.4.4=h295c915_0
+  - flask=2.1.2=pyhd8ed1ab_1
+  - flask-compress=1.12=pyhd8ed1ab_0
   - fontconfig=2.13.1=h6c09931_0
   - fonttools=4.25.0=pyhd3eb1b0_0
   - freetype=2.11.0=h70c0345_0
@@ -45,6 +50,7 @@ dependencies:
   - ipython=7.31.1=py39h06a4308_0
   - ipython_genutils=0.2.0=pyhd3eb1b0_1
   - ipywidgets=7.6.5=pyhd3eb1b0_1
+  - itsdangerous=2.1.2=pyhd8ed1ab_0
   - jedi=0.18.1=py39h06a4308_1
   - jinja2=3.0.2=pyhd3eb1b0_0
   - jpeg=9d=h7f8727e_0
@@ -101,7 +107,7 @@ dependencies:
   - numexpr=2.8.1=py39h6abb31d_0
   - numpy=1.21.2=py39h20f2e39_0
   - numpy-base=1.21.2=py39h79a1101_0
-  - openssl=1.1.1n=h7f8727e_0
+  - openssl=1.1.1o=h166bdaf_0
   - packaging=21.3=pyhd3eb1b0_0
   - pandas=1.4.1=py39h295c915_0
   - pandocfilters=1.5.0=pyhd3eb1b0_0
@@ -151,6 +157,7 @@ dependencies:
   - tzdata=2021e=hda174b7_0
   - wcwidth=0.2.5=pyhd3eb1b0_0
   - webencodings=0.5.1=py39h06a4308_1
+  - werkzeug=2.1.2=pyhd8ed1ab_1
   - wheel=0.37.1=pyhd3eb1b0_0
   - widgetsnbextension=3.5.1=py39h06a4308_0
   - xz=5.2.5=h7b6447c_0
