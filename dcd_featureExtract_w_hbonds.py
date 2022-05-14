@@ -362,7 +362,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="profile dcd to extract metrics from each frame")
     parser.add_argument("-dcd", type=str, help="dcd file",required=True, nargs='+')
     parser.add_argument("-psf", type=str, help="psf file",required=True)
-    parser.add_argument("-hbondOnly", type=bool, help="extract H-bond Feature Only", required=False, default=False)
+    parser.add_argument("-hbondOnly", type=bool, help="extract H-bond Feature Only", required=False, default=True)
     parser.add_argument("-multiprocess", required=False, type=bool, default=False,help="multi-cpu for parallel processing")
     parser.add_argument("-out_dir", required=False, default= f'{os.getcwd()}/dcdMetricRunDir')
 
