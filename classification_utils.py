@@ -139,16 +139,18 @@ def prep_ML_data(clf_df,ts,rs,labelnames):
    
 def load_data(fnames, is_open):
     '''Load and concatenate all datasets'''
+    # fnames = list of files corresponding to featuresets to use in training. Should include full path
+    # is_open = list of labels for corresponding fnames. 1 is open & 0 is closed
+
     dfs = []
     for f in range(len(fnames)):
         dfs.append(pd.read_csv(fnames[f]).assign(label = is_open[f]).iloc[:,1:])
     return pd.concat(dfs,join='inner')
 
     
-def train_sgd_model(fnames, is_open, rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
+def train_sgd_model(df, rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
     '''Train SGD classifier on input data using input features'''
-    # fnames = list of files corresponding to featuresets to use in training. Should include full path
-    # is_open = list of labels for corresponding fnames. 1 is open & 0 is closed
+    # df = dataframe 
     # rbd_wind = distance in nm. Only glycans with COM < rbd_wind away from RBD will be included in analysis
     # feat_incl = list of features to include. Options are '_x','_y','_z','RBD__2__','ROF','RMSD'
     # corr_thresh = maximum threshold for correlations between features. Features with higher correlations will be dropped
@@ -156,10 +158,6 @@ def train_sgd_model(fnames, is_open, rbd_wind=8, feat_incl=['_x','_y','_z','RBD_
     # Set some variables
     tt_split = 0.3
     rand_seed = 42
-    
-    # Confirm fnames & is_open have same length
-    # Load data
-    df = load_data(fnames,is_open)
     
     # Restrict RBD window 
     df = restrict_RBD_window(df,rbd_wind)
