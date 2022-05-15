@@ -200,6 +200,7 @@ def plot_feature_importances(df_feats):
     x_vals = [glycan_bionames.get_elem(i,'feat') for i in df_feats['feats'].to_list()]
     y_vals = df_feats['importance'].to_list() 
     col_vals = [glycan_bionames.get_elem(i,'chain') for i in df_feats['feats'].to_list()]
+    cmap = {'Monomer A':'royalblue','Monomer B':'indianred','Monomer C':'forestgreen','Core':'orange','RBD_CA0:ROF':'mediumpurple'}
 
-    fig1 = px.bar(x=x_vals,y=y_vals,color=col_vals,labels={'x':'Feature','y':'Importance','color':'Substructure'}).update_xaxes(categoryorder='total ascending')
+    fig1 = px.bar(x=x_vals,y=y_vals,color=col_vals,title='Important Features',color_discrete_map=cmap, labels={'x':'Feature','y':'Importance','color':'Substructure'}).update_xaxes(categoryorder='total ascending')
     return fig1

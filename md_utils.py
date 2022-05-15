@@ -79,6 +79,7 @@ def parse_traj(traj):
 def viz_traj(traj,atom_id_LUP, dfFeats,title_str):
     '''Display trajectory with top features highlighted'''
     # Get names of substructures
+#     dfFeats.sort_values(by='importance',axis=0,inplace=True,ascending=False)
     feats = []
     for i in dfFeats['feats']:
         try:
