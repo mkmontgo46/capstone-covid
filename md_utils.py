@@ -5,6 +5,7 @@ import os
 import sys, re
 import pandas as pd
 import plotly_express as px
+import glycan_bionames
 
 def extract_glycan_residues_4m_pdb(dcdObj):
     '''Extract glycans from dcd object. Glycans=atoms w/ segment_id == G1, G2, etc'''
@@ -79,23 +80,34 @@ def parse_traj(traj):
 def viz_traj(traj,atom_id_LUP, dfFeats,title_str):
     '''Display trajectory with top features highlighted'''
     # Get names of substructures
-#     dfFeats.sort_values(by='importance',axis=0,inplace=True,ascending=False)
-    feats = []
+    dfFeats.sort_values(by='importance',axis=0,inplace=True,ascending=False)
+    feats = []; 
+    bionames = {'sidechain':'Sidechain','RBD_CA':'RBD','CH_CA':'Central Helix','GLY':'Glycans','backbone':'Backbone'}
     for i in dfFeats['feats']:
         try:
-            feats.append(f'G{int(gly_4m_featname(i))+1}')
+            featname = f'G{int(gly_4m_featname(i))+1}'
+            feats.append(featname)
+            glyname = f'GLY{int(gly_4m_featname(i))}'
+            bionames[featname] = glycan_bionames.get_elem(glyname,'position') + '_' + glycan_bionames.get_elem(glyname,'chain')
         except:
             continue
 
     for j in feats[:5]:
         name = 'segname ' + j
         atom_id_LUP[j] = traj.top.select(name)
-        
+    
+    
     # Display spike with top features highlighted
     keyNames =['sidechain','RBD_CA', 'CH_CA', 'GLY','backbone']+feats[:5]
     coord_df = gen_xyz_Table_4_LUP(LUP=atom_id_LUP,traj=traj, keyNames =keyNames)
+    # Rename features to use bionames
+    coord_df['Substructure'] = coord_df.apply(lambda row: bionames[row['type']],axis=1)
+    print(coord_df)
     fig1 = px.scatter_3d(coord_df, title=title_str, x='x', y='y', z='z',
-              color='type',width=800,height=800,opacity=0.5, 
+              color='Substructure',width=800,height=800,opacity=0.5, template='simple_white',
                         size = [1]*len(coord_df)
                 )
+    fig1.update_yaxes(title='y',visible=False,showticklabels=False)
+    fig1.update_xaxes(title='x',visible=False,showticklabels=False)
+#     fig1.update_zaxes(title='z',visible=False,showticklabels=False)
     return fig1

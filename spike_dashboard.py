@@ -221,7 +221,7 @@ def do_everything(traj_sel,feat_sel,rbd_wind,corr_thresh,df_feat,feat_imp_fig,te
 
         # Create figures
         spike1_fig = mdu.viz_traj(traj_closed,atom_id_closed, pd.DataFrame(df_feat),'Closed Spike')
-        spike2_fig = mdu.viz_traj(traj_open,atom_id_open, df_feat,'Open Spike')
+        spike2_fig = mdu.viz_traj(traj_open,atom_id_open, pd.DataFrame(df_feat),'Open Spike')
         
         update = 'All trajectories loaded for visualization!'
         return [feat_imp_fig, testResults, spike1_fig, spike2_fig, df_feat, update]
