@@ -97,17 +97,20 @@ def viz_traj(traj,atom_id_LUP, dfFeats,title_str):
         atom_id_LUP[j] = traj.top.select(name)
     
     
-    # Display spike with top features highlighted
+    # Prep most important features for visualization
     keyNames =['sidechain','RBD_CA', 'CH_CA', 'GLY','backbone']+feats[:5]
     coord_df = gen_xyz_Table_4_LUP(LUP=atom_id_LUP,traj=traj, keyNames =keyNames)
+    
     # Rename features to use bionames
     coord_df['Substructure'] = coord_df.apply(lambda row: bionames[row['type']],axis=1)
-    print(coord_df)
+    
+    # Display most important features
     fig1 = px.scatter_3d(coord_df, title=title_str, x='x', y='y', z='z',
               color='Substructure',width=800,height=800,opacity=0.5, template='simple_white',
                         size = [1]*len(coord_df)
                 )
-    fig1.update_yaxes(title='y',visible=False,showticklabels=False)
-    fig1.update_xaxes(title='x',visible=False,showticklabels=False)
-#     fig1.update_zaxes(title='z',visible=False,showticklabels=False)
+    # Remove tick labels on all 3 axes
+    fig1.update_layout(scene=dict(xaxis=dict(showticklabels=False),
+                             yaxis = dict(showticklabels=False),
+                             zaxis = dict(showticklabels=False)))
     return fig1

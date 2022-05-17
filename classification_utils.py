@@ -144,7 +144,10 @@ def load_data(fnames, is_open):
 
     dfs = []
     for f in range(len(fnames)):
-        dfs.append(pd.read_csv(fnames[f]).assign(label = is_open[f]).iloc[:,1:])
+        df = pd.read_csv(fnames[f]).assign(label = is_open[f]).iloc[:,1:]
+        df['Replicant'] = fnames[f]
+        df['isopen'] = is_open[f]
+        dfs.append(df)
     return pd.concat(dfs,join='inner')
 
     
@@ -169,7 +172,10 @@ def train_sgd_model(df, rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','
             df = drop_feats(df,f)
             
     # Drop non-feature columns
-    df.drop(['frame'],axis=1)
+    non_features = ['frame','frame_num','isopen','Replicant']
+    for f in non_features:
+        if f in df.keys():
+            df = df.drop([f],axis=1)
     
     # Remove highly correlated features
     df = remove_corr_feats(df,corr_thresh)
@@ -205,3 +211,22 @@ def plot_feature_importances(df_feats):
     fig1 = px.bar(x=x_vals,y=y_vals,color=col_vals,title='Important Features',color_discrete_map=cmap, labels={'x':'Feature','y':'Importance','color':'Substructure'}).update_xaxes(categoryorder='total ascending')
     fig1.update_layout(template='simple_white')
     return fig1
+
+def trace_single_feat(df,f):
+    '''Draws line plot for feature f for all replicants in dataframe df'''
+    # Define colors: open = blue & closed = red
+    df_r = df[['Replicant','isopen']].drop_duplicates()
+    cmap = {}; colors = ['red','blue']
+    for i in range(len(df_r)):
+        cmap[df_r.iloc[i]['Replicant']] = colors[df_r.iloc[i]['isopen']]
+        
+    # Create new dataframe with each replicant having different trace of feature f
+    df_f = pd.DataFrame()
+    for r in df['Replicant'].unique():
+       df_f[r] = df.loc[df['Replicant']==r][f]
+
+    # Plot
+    fig = px.line(df_f,title=f + ' Over a Full Trajectory',color_discrete_map=cmap,
+                 labels={'x':'Frame Number','y':f+' Value','color':'Replicant'})
+    fig.update_layout(template='simple_white')
+    return fig
