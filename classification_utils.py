@@ -214,11 +214,18 @@ def plot_feature_importances(df_feats):
 
 def trace_single_feat(df,f):
     '''Draws line plot for feature f for all replicants in dataframe df'''
+    print(df['Replicant'].unique())
     # Define colors: open = blue & closed = red
     df_r = df[['Replicant','isopen']].drop_duplicates()
     cmap = {}; colors = ['red','blue']
     for i in range(len(df_r)):
         cmap[df_r.iloc[i]['Replicant']] = colors[df_r.iloc[i]['isopen']]
+    
+    # Convert feature names to bionames 
+    rename_cols = {'Replicant':'Replicant','isopen':'isopen'}
+    for c in df.keys().to_list():
+        rename_cols[c] = glycan_bionames.get_elem(c,'feat')
+    df = df.rename(columns=rename_cols)
         
     # Create new dataframe with each replicant having different trace of feature f
     df_f = pd.DataFrame()

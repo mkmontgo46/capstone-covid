@@ -3,6 +3,7 @@ from dash import Dash, html, dcc, Input, Output, State, callback_context
 import plotly_express as px
 import md_utils as mdu
 import classification_utils as clu
+import glycan_bionames
 import os, glob
 import pandas as pd
 import numpy as np
@@ -156,6 +157,7 @@ app.layout = html.Div(
                Input('corr_thresh','value'),
                Input('df','data'),
                Input('df_feat','data'),
+               Input('feat_imp','clickData'),
                Input('feat_imp','figure'),
                Input('performance_label','children'),
                Input('spike1','figure'),
@@ -167,6 +169,7 @@ app.layout = html.Div(
              )
 def do_everything(traj_sel,feat_sel,rbd_wind,corr_thresh,
                   df, df_feat,
+                  clickData,
                   feat_imp_fig,testResults,spike1_fig,spike2_fig,feat_trace, 
                   n_train,n_go):
     update = 'Return'
@@ -210,13 +213,29 @@ def do_everything(traj_sel,feat_sel,rbd_wind,corr_thresh,
                                                               rbd_wind=rbd_wind,
                                                               corr_thresh=corr_thresh)
         testResults = 'Test precision: ' + str(ts_p) + ', Test recall: ' + str(ts_r)
+        
+        # Filter dataframe to top 10 features
+        top_feats = df_feat[:10]['feats'].to_list() + ['Replicant','isopen']        
+        df = df[top_feats]
+        df_feat = df_feat[:10]
 
         # Create figure
         feat_imp_fig = clu.plot_feature_importances(df_feat)
-        feat_trace = clu.trace_single_feat(df,df_feat.iloc[0]['feats'])
+        feat_trace = clu.trace_single_feat(df,glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'feat'))
         
         update = 'Training completed!'
         return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df.to_dict(), df_feat.to_dict(),update]
+    
+    elif buttonID == 'feat_imp':
+        # Update trace of important feature
+        feat = clickData['points'][0]['x']
+        feat_trace = clu.trace_single_feat(pd.DataFrame(df),feat)
+        
+        
+        update = 'Plotted ' + feat + ' data'
+        
+        return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df, df_feat, update]
+    
     
     
     # ----------- Do Everything Else Callback --------
@@ -241,8 +260,7 @@ def do_everything(traj_sel,feat_sel,rbd_wind,corr_thresh,
         # Create figures
         spike1_fig = mdu.viz_traj(traj_closed,atom_id_closed, pd.DataFrame(df_feat),'Closed Spike')
         spike2_fig = mdu.viz_traj(traj_open,atom_id_open, pd.DataFrame(df_feat),'Open Spike')
-#         feat_trace = clu.trace_single_feat(pd.DataFrame(df),pd.DataFrame(df_feat).iloc[0]['feats'])
-#         feat_trace = clu.trace_top_feats(df,df_feat) 
+
         
         update = 'All trajectories loaded for visualization!'
         return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df, df_feat, update]
