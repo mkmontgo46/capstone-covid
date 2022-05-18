@@ -77,7 +77,7 @@ def parse_traj(traj):
     
     return atom_id_LUP
 
-def viz_traj(traj,atom_id_LUP, dfFeats,title_str):
+def viz_traj(traj,atom_id_LUP, dfFeats,title_str,title_clr):
     '''Display trajectory with top features highlighted'''
     # Get names of substructures
     dfFeats.sort_values(by='importance',axis=0,inplace=True,ascending=False)
@@ -112,5 +112,6 @@ def viz_traj(traj,atom_id_LUP, dfFeats,title_str):
     # Remove tick labels on all 3 axes
     fig1.update_layout(scene=dict(xaxis=dict(showticklabels=False),
                              yaxis = dict(showticklabels=False),
-                             zaxis = dict(showticklabels=False)))
+                             zaxis = dict(showticklabels=False)),
+                       title={'font':{'color':title_clr}})
     return fig1

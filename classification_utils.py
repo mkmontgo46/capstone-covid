@@ -145,7 +145,7 @@ def load_data(fnames, is_open):
     dfs = []
     for f in range(len(fnames)):
         df = pd.read_csv(fnames[f]).assign(label = is_open[f]).iloc[:,1:]
-        df['Replicant'] = fnames[f]
+        df['Replicant'] = fnames[f].split('TRAJECTORIES_')[1]
         df['isopen'] = is_open[f]
         dfs.append(df)
     return pd.concat(dfs,join='inner')
@@ -212,9 +212,8 @@ def plot_feature_importances(df_feats):
     fig1.update_layout(template='simple_white')
     return fig1
 
-def trace_single_feat(df,f):
+def trace_single_feat(df,f,title_clr):
     '''Draws line plot for feature f for all replicants in dataframe df'''
-    print(df['Replicant'].unique())
     # Define colors: open = blue & closed = red
     df_r = df[['Replicant','isopen']].drop_duplicates()
     cmap = {}; colors = ['red','blue']
@@ -235,5 +234,6 @@ def trace_single_feat(df,f):
     # Plot
     fig = px.line(df_f,title=f + ' Over a Full Trajectory',color_discrete_map=cmap,
                  labels={'x':'Frame Number','y':f+' Value','color':'Replicant'})
-    fig.update_layout(template='simple_white')
+    fig.update_layout(template='simple_white',
+                     title={'font':{'color':title_clr}})
     return fig

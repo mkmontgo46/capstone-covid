@@ -104,21 +104,20 @@ app.layout = html.Div(
         
         html.Div(children=[
             # Label performance of model
+            
             html.P(id='performance_label',
                    children=''),
             # Plot bar graph of feature importances
             dcc.Graph(id='feat_imp',figure={}),
-        ]),
         
         # Plot top feature over trajectory
-        html.Div(children=[
             dcc.Graph(id='feat_trace',
                       figure={})
         ]),
         
-        # Button to do everything else
-        html.Button('Map Important Features',id='go',n_clicks = 0,
-                   style = {'height':'35px'}),
+#         # Button to do everything else
+#         html.Button('Map Important Features',id='go',n_clicks = 0,
+#                    style = {'height':'35px'}),
         # Plot open & closed spike with important features highlighted
         html.Div(children=[
             dcc.Graph(id='spike1',
@@ -148,14 +147,12 @@ app.layout = html.Div(
                Output('spike1','figure'),
                Output('spike2','figure'),
                Output('feat_trace','figure'),
-               Output('df','data'),
               Output('df_feat','data'),
               Output('update_window','children')],
               [Input('featureset_select','value'),
                Input('feature_select','value'),
                Input('rbd_wind','value'),
                Input('corr_thresh','value'),
-               Input('df','data'),
                Input('df_feat','data'),
                Input('feat_imp','clickData'),
                Input('feat_imp','figure'),
@@ -164,29 +161,33 @@ app.layout = html.Div(
                Input('spike2','figure'),
                Input('feat_trace','figure'),
               Input('train_go','n_clicks'),
-              Input('go','n_clicks')],
+#               Input('go','n_clicks')
+              ],
               prevent_initial_call = True
              )
 def do_everything(traj_sel,feat_sel,rbd_wind,corr_thresh,
-                  df, df_feat,
+                  df_feat,
                   clickData,
                   feat_imp_fig,testResults,spike1_fig,spike2_fig,feat_trace, 
-                  n_train,n_go):
+                  n_train):
+#                   ,n_go):
     update = 'Return'
     # Figure out why callback running
     ctx = callback_context
     if not ctx.triggered or ctx.triggered[0]['value'] is None:
         update = 'No trigger'
-        return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df, df_feat, update]
+        return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df_feat, update]
        
     buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
+
+    cmap = {'Monomer A':'royalblue','Monomer B':'indianred','Monomer C':'forestgreen','Core':'orange','CA0:ROF':'mediumpurple'}
         
     # ---------- Train Model Callback -------------
     if buttonID == 'train_go':
         # Confirm at least 2 feature sets selected
         if traj_sel is None or len(traj_sel) < 2:
             update = 'Please select at least 2 feature sets!'
-            return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df, df_feat, update]
+            return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df_feat, update]
         
         # Get list of csv files containing features
         print('Loading feature sets')
@@ -200,7 +201,7 @@ def do_everything(traj_sel,feat_sel,rbd_wind,corr_thresh,
         # Confirm both open & closed data present
         if len(np.unique(is_open)) < 2:
             update = 'Please select both an open and a closed dataset!'
-            return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df, df_feat, update]
+            return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df_feat, update]
         
         # Load data
         df = clu.load_data(feat_files,is_open)
@@ -221,49 +222,102 @@ def do_everything(traj_sel,feat_sel,rbd_wind,corr_thresh,
 
         # Create figure
         feat_imp_fig = clu.plot_feature_importances(df_feat)
-        feat_trace = clu.trace_single_feat(df,glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'feat'))
+        feat_trace = clu.trace_single_feat(df,glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'feat'),cmap[glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'chain')])
         
-        update = 'Training completed!'
-        return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df.to_dict(), df_feat.to_dict(),update]
-    
-    elif buttonID == 'feat_imp':
-        # Update trace of important feature
-        feat = clickData['points'][0]['x']
-        feat_trace = clu.trace_single_feat(pd.DataFrame(df),feat)
-        
-        
-        update = 'Plotted ' + feat + ' data'
-        
-        return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df, df_feat, update]
-    
-    
-    
-    # ----------- Do Everything Else Callback --------
-    elif buttonID == 'go':
-        # Confirm model has been trained
-        if len(df_feat) ==0:
-            update = 'Oops! You need to train the model first!'
-            return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df, df_feat, update]
-            
         # Load trajectories - for now load first directories with and without 'closed' in the name
         print('Loading trajectories...')
         closed_dirs = traj_sel[['closed' in i for i in traj_sel].index(True)]
         open_dirs = traj_sel[['closed' in i for i in traj_sel].index(False)]
         traj_open = mdu.load_traj(open_dirs)
         traj_closed = mdu.load_traj(closed_dirs)
-
-        # Parse trajectories
+        
+         # Parse trajectories
         print('Parsing trajectories...')
         atom_id_open = mdu.parse_traj(traj_open)
         atom_id_closed = mdu.parse_traj(traj_closed)
 
         # Create figures
-        spike1_fig = mdu.viz_traj(traj_closed,atom_id_closed, pd.DataFrame(df_feat),'Closed Spike')
-        spike2_fig = mdu.viz_traj(traj_open,atom_id_open, pd.DataFrame(df_feat),'Open Spike')
-
+        spike1_fig = mdu.viz_traj(traj_closed,atom_id_closed, pd.DataFrame(df_feat),'Closed Spike','red')
+        spike2_fig = mdu.viz_traj(traj_open,atom_id_open, pd.DataFrame(df_feat),'Open Spike','blue')
         
         update = 'All trajectories loaded for visualization!'
-        return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df, df_feat, update]
+        
+        update = 'Training completed!'
+        return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df_feat.to_dict(),update]
+    
+    elif buttonID == 'feat_imp':
+        # Get list of csv files containing features
+        print('Loading feature sets')
+        feat_files = []
+        for t in traj_sel:
+            feat_files.extend(glob.glob(os.path.join(t,'results','*FinalExtractedFeature*.csv')))
+
+        # For now, assume if dataset not labeled as "closed", is open
+        is_open = ['closed' not in d for d in feat_files]
+        
+        # Confirm both open & closed data present
+        if len(np.unique(is_open)) < 2:
+            update = 'Please select both an open and a closed dataset!'
+            return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df_feat, update]
+        
+        # Load data
+        df = clu.load_data(feat_files,is_open)
+        
+        
+        
+        # Update trace of important feature
+        feat = clickData['points'][0]['x']
+        feat_trace = clu.trace_single_feat(df,feat,cmap[feat.split('_')[-1]])
+        
+        
+        update = 'Plotted ' + feat + ' data'
+        
+        return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df_feat, update]
+    
+    
+    
+    # ----------- Do Everything Else Callback --------
+#     elif buttonID == 'go':
+#         # Confirm model has been trained
+#         if len(df_feat) ==0:
+#             update = 'Oops! You need to train the model first!'
+#             return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df_feat, update]
+        
+#         # Get list of csv files containing features
+#         print('Loading feature sets')
+#         feat_files = []
+#         for t in traj_sel:
+#             feat_files.extend(glob.glob(os.path.join(t,'results','*FinalExtractedFeature*.csv')))
+
+#         # For now, assume if dataset not labeled as "closed", is open
+#         is_open = ['closed' not in d for d in feat_files]
+        
+#         # Confirm both open & closed data present
+#         if len(np.unique(is_open)) < 2:
+#             update = 'Please select both an open and a closed dataset!'
+#             return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df_feat, update]
+        
+#         # Load data
+#         df = clu.load_data(feat_files,is_open)
+            
+#         # Load trajectories - for now load first directories with and without 'closed' in the name
+#         print('Loading trajectories...')
+#         closed_dirs = traj_sel[['closed' in i for i in traj_sel].index(True)]
+#         open_dirs = traj_sel[['closed' in i for i in traj_sel].index(False)]
+#         traj_open = mdu.load_traj(open_dirs)
+#         traj_closed = mdu.load_traj(closed_dirs)
+
+#         # Parse trajectories
+#         print('Parsing trajectories...')
+#         atom_id_open = mdu.parse_traj(traj_open)
+#         atom_id_closed = mdu.parse_traj(traj_closed)
+
+#         # Create figures
+#         spike1_fig = mdu.viz_traj(traj_closed,atom_id_closed, pd.DataFrame(df_feat),'Closed Spike','red')
+#         spike2_fig = mdu.viz_traj(traj_open,atom_id_open, pd.DataFrame(df_feat),'Open Spike','blue')
+        
+#         update = 'All trajectories loaded for visualization!'
+#         return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df_feat, update]
     
     
     # ------------ All other callbacks -------------
@@ -276,7 +330,7 @@ def do_everything(traj_sel,feat_sel,rbd_wind,corr_thresh,
             update = "Ready to train the model! Feel free to adjust the model parameters, then hit the green button when you're ready!"
         else:
             update = "I'm confused..."
-        return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df, df_feat, update]
+        return [feat_imp_fig, testResults, spike1_fig, spike2_fig, feat_trace, df_feat, update]
 
 # Run app
 if __name__ == "__main__":
