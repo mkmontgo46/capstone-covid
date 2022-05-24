@@ -84,7 +84,7 @@ def assign_marker_size(atom_type):
     if atom_type in bkg:
         return 1
     else:
-        return 12
+        return 8
 
 def viz_traj(traj,atom_id_LUP, dfFeats,title_str,title_clr):
     '''Display trajectory with top features highlighted'''

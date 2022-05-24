@@ -22,6 +22,7 @@ import numpy as np
 import os
 import pandas as pd
 import plotly.express as px
+import plotly.subplots as sp
 import time
 
 # Import custom utility functions
@@ -236,7 +237,40 @@ def trace_single_feat(df,f,title_clr):
                  labels={'x':'Frame Number','y':f+' Value','color':'Replicant'})
     fig.update_layout(template='simple_white',
                      title={'font':{'color':title_clr}})
-    return fig
+    
+    
+    # ------------ Combine w/ Histogram ----------------
+    fig2 = hist_single_feat(df,f,title_clr)
+    
+    # For as many traces that exist per Express figure, get the traces from each plot and store them in an array.
+    # This is essentially breaking down the Express fig into it's traces
+    line_traces = []
+    hist_traces = []
+    for trace in range(len(fig["data"])):
+        line_traces.append(fig["data"][trace])
+    for trace in range(len(fig2["data"])):
+        hist_traces.append(fig2["data"][trace])
+
+    #Create a 1x2 subplot
+    full_figure = sp.make_subplots(rows=1, cols=2, column_widths = [0.7, 0.3], shared_yaxes = True) 
+
+    # Get the Express fig broken down as traces and add the traces to the proper plot within in the subplot
+    for trace in line_traces:
+        full_figure.append_trace(trace, row=1, col=1)
+    for trace in hist_traces:
+        full_figure.append_trace(trace, row=1, col=2)
+
+    # Format full figure
+    full_figure.update_yaxes(showticklabels=False,row=1,col=2)
+    full_figure.update_yaxes(title_text=f,row=1,col=1)
+    full_figure.update_xaxes(title_text='Frame',row=1,col=1)
+    full_figure.update_xaxes(title_text='Frequency',row=1,col=2)
+    full_figure.update_layout(template='simple_white',
+                     title={'font':{'color':title_clr},
+                            'text':f + ' Over a Full Trajectory'})
+    
+    
+    return full_figure
 
 def hist_single_feat(df,f, title_clr):
     '''Draw histogram for feature f'''
