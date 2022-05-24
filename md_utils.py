@@ -77,6 +77,15 @@ def parse_traj(traj):
     
     return atom_id_LUP
 
+def assign_marker_size(atom_type):
+    '''Assign marker size and symbol for an atom of input type'''
+    bkg = ['backbone','sidechain','GLY','RBD_CA','CH_CA']
+#     marker_sizes = {'backbone':2,'sidechain':2,'GLY':2,'RBD_CA':12,'CH_CA':2}
+    if atom_type in bkg:
+        return 1
+    else:
+        return 12
+
 def viz_traj(traj,atom_id_LUP, dfFeats,title_str,title_clr):
     '''Display trajectory with top features highlighted'''
     # Get names of substructures
@@ -104,10 +113,22 @@ def viz_traj(traj,atom_id_LUP, dfFeats,title_str,title_clr):
     # Rename features to use bionames
     coord_df['Substructure'] = coord_df.apply(lambda row: bionames[row['type']],axis=1)
     
+    # Add marker size info
+    coord_df['marker_size'] = coord_df.apply(lambda row: assign_marker_size(row['type']),axis=1)
+    
+    # Create custom colormap
+    cmap = {}; bkg = ['Backbone','Sidechain','Glycans','RBD','Central Helix']; ct = 0
+    for s in coord_df['Substructure'].unique():
+        if s in bkg:
+            cmap[s] = '#d3d3d3'
+        else:
+            cmap[s] = px.colors.qualitative.Plotly[ct]
+            ct += 1
+    
     # Display most important features
     fig1 = px.scatter_3d(coord_df, title=title_str, x='x', y='y', z='z',
               color='Substructure',width=800,height=800,opacity=0.5, template='simple_white',
-                        size = [1]*len(coord_df)
+                         size = 'marker_size', color_discrete_map = cmap
                 )
     # Remove tick labels on all 3 axes
     fig1.update_layout(scene=dict(xaxis=dict(showticklabels=False),

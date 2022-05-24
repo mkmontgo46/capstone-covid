@@ -1,8 +1,8 @@
 import os
 
-dirname = '/net/jam-amaro-shared/dse_project/Spike_Dataset/TRAJECTORIES_spike_mutant_prot_glyc_amarolab/'
+dirname = '/net/jam-amaro-shared/dse_project/Spike_Dataset/TRAJECTORIES_spike_open_prot_glyc_amarolab/'
 num_dcds = 6
-file_prefix = 'spike_mutant_prot_glyc_amarolab'
+file_prefix = 'spike_open_prot_glyc_amarolab'
 save_file = 'Feature_hBond.csv'
 
 for i in range(1,num_dcds):
