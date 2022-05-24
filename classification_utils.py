@@ -237,3 +237,23 @@ def trace_single_feat(df,f,title_clr):
     fig.update_layout(template='simple_white',
                      title={'font':{'color':title_clr}})
     return fig
+
+def hist_single_feat(df,f, title_clr):
+    '''Draw histogram for feature f'''
+    # Define colors: open = blue & closed = red
+    cmap = {'Open':'blue','Closed':'red'}
+        
+    # Convert feature names to bionames 
+    rename_cols = {'Replicant':'Replicant','isopen':'isopen'}
+    for c in df.keys().to_list():
+        rename_cols[c] = glycan_bionames.get_elem(c,'feat')
+    df = df.rename(columns=rename_cols)
+    
+    # Relabel isopen
+    labels = ['Closed','Open']
+    df['state'] = df.apply(lambda row: labels[int(row['isopen'])], axis=1)
+        
+    fig = px.histogram(df,y=f,color = 'state',title=f,color_discrete_map = cmap)
+    fig.update_layout(template='simple_white',
+                     title={'font':{'color':title_clr}})
+    return fig
