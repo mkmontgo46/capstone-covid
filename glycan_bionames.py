@@ -29,6 +29,7 @@ def get_names():
      
     bionames['CH_CA0'] = {'chain':'Core','position':'CH'}
     bionames['backbone0'] = {'chain':'Core','position':'Backbone'}
+    bionames['RBD_CA0'] = {'chain':'RBD','position':'RBD'}
     return bionames
 
 def gly_4m_featname(featname):

@@ -120,7 +120,7 @@ def viz_traj(traj,atom_id_LUP, dfFeats,title_str,title_clr):
     cmap = {}; bkg = ['Backbone','Sidechain','Glycans','RBD','Central Helix']; ct = 0
     for s in coord_df['Substructure'].unique():
         if s in bkg:
-            cmap[s] = '#d3d3d3'
+            cmap[s] = '#7f7f7f'
         else:
             cmap[s] = px.colors.qualitative.Plotly[ct]
             ct += 1

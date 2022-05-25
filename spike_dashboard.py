@@ -179,7 +179,7 @@ def do_everything(traj_sel,feat_sel,rbd_wind,corr_thresh,
        
     buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
 
-    cmap = {'Monomer A':'royalblue','Monomer B':'indianred','Monomer C':'forestgreen','Core':'orange','CA0:ROF':'mediumpurple'}
+    cmap = {'Monomer A':'royalblue','Monomer B':'indianred','Monomer C':'forestgreen','Core':'orange','RBD':'mediumpurple'}
         
     # ---------- Train Model Callback -------------
     if buttonID == 'train_go':
