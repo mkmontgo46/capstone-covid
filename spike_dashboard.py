@@ -7,12 +7,16 @@ import glycan_bionames
 import os, glob
 import pandas as pd
 import numpy as np
+import sys
 
 
 # --------------- Initialize Variables -----------------------
 
 # Locations to read data from
-data_dir = '/net/jam-amaro-shared/dse_project/Spike_Dataset/'
+data_dir = os.getenv('SPIKEDATASET_DIR')#'/data/Spike_Dataset/'
+if data_dir is None:
+    sys.exit('Error: No spike dataset directory provided as an environment variable.')
+
 traj_dirs = glob.glob(os.path.join(data_dir,'*TRAJECTOR*'))
 traj_opts = []
 for i in range(len(traj_dirs)):
@@ -337,4 +341,4 @@ def do_everything(traj_sel,feat_sel,rbd_wind,corr_thresh,
 
 # Run app
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(host='0.0.0.0',debug=True, port=8050)
