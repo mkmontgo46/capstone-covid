@@ -367,7 +367,8 @@ def trace_single_feat(df,f,title_clr):
     # Plot
     fig = px.line(df_f,title=f + ' Over a Full Trajectory',color_discrete_map=cmap)
     fig.update_layout(template='simple_white',
-                     title={'font':{'color':title_clr}})
+                     title={'font':{'color':title_clr}},
+                     showlegend=False)
     
     
     # ------------ Combine w/ Histogram ----------------
@@ -388,17 +389,18 @@ def trace_single_feat(df,f,title_clr):
     # Get the Express fig broken down as traces and add the traces to the proper plot within in the subplot
     for trace in line_traces:
         full_figure.append_trace(trace, row=1, col=1)
+    full_figure.for_each_trace(lambda t: t.update(showlegend=False))
     for trace in hist_traces:
         full_figure.append_trace(trace, row=1, col=2)
 
     # Format full figure
     full_figure.update_yaxes(showticklabels=False,row=1,col=2)
-    full_figure.update_yaxes(title_text=f,row=1,col=1)
+    full_figure.update_yaxes(title_text=glycan_bionames.rename_feat(f),row=1,col=1)
     full_figure.update_xaxes(title_text='Frame',row=1,col=1)
     full_figure.update_xaxes(title_text='Frequency',row=1,col=2)
     full_figure.update_layout(template='simple_white',
                      title={'font':{'color':title_clr},
-                            'text':f + ' Over a Full Trajectory'})
+                            'text':glycan_bionames.rename_feat(f) + ' Over a Full Trajectory'})
     
     
     return full_figure
