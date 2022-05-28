@@ -185,10 +185,21 @@ app.layout = html.Div(
             # Plot bar graph of feature importances
             dcc.Graph(id='feat_imp', figure = blank_fig()),
             
-            # Plot top feature over trajectory
+            
             
         ]),
-        
+        # Plot top feature over trajectory
+        html.Div(children=[
+            html.Br(),
+            html.Button('Plot top feature over time',
+                        id='trace_go'),
+            dcc.Loading(
+                id='loading_trace',
+                type='default',
+                children=dcc.Graph(id='feat_trace',
+                                   figure = blank_fig())
+            )
+        ]),
 #         # Button to do everything else
 #         html.Button('Map Important Features',id='go',n_clicks = 0,
 #                    style = {'height':'35px'}),
@@ -262,7 +273,6 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
 
         # For now, assume if dataset not labeled as "closed", is open
         is_open = ['closed' not in d for d in feat_files]
-        #print(is_open)
         
         # Confirm both open & closed data present
         if len(np.unique(is_open)) < 2:
@@ -276,7 +286,7 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
         global_state_df.to_csv('./current_tmp_df.csv')
         print('Data loaded')
         feat_stats_fig_dict = clu.getfeatureStats(pd.DataFrame(global_state_df),feat_incl=feat_sel)
-        print('HERE')
+        print('Feature Histograms Plotted')
         return [feat_stats_fig_dict[feat_sel[0]]]
     else:
         if len(traj_sel) == 0:
@@ -322,15 +332,16 @@ def train_Spike_classifier_new(n_go):
         print('HERE-NEW')
         # Train Model
         global_state_df  = pd.read_csv('./current_tmp_df.csv')
-        global_state_df.drop('Unnamed: 0',inplace=True,axis=1)
+        global_state_df.drop(['Unnamed: 0'],inplace=True,axis=1)
         #print(f'Preparing to train model-NEW , colu : {global_state_df.columns.to_list()}')
-        tr_p, tr_r, ts_p, ts_r, df_feat = clu.train_sgd_model_new(pd.DataFrame(global_state_df))
+        tr_p, tr_r, ts_p, ts_r, df_feat = clu.train_sgd_model_new(pd.DataFrame(global_state_df.copy()))
         testResults = 'Test precision: ' + str(round(ts_p,3)) + ', Test recall: ' + str(round(ts_r,3))
         print(f'Training Completed : {testResults}')
         # Filter dataframe to top 10 features
-        top_feats = df_feat[:10]['feats'].to_list() + ['Replicant','isopen']    
-        #df = global_state_df[top_feats]
+        top_feats = df_feat[:10]['feats'].to_list() + ['Replicant','isopen','frame']    
+        df = global_state_df[top_feats]
         df_feat = df_feat[:10]
+        df.to_csv('./current_tmp_df.csv')
         df_feat.to_csv('./current_tmp_topfeats.csv')
         feat_imp_fig = clu.plot_feature_importances(df_feat)
         #return [feat_imp_fig, testResults, df_feat, update]
@@ -339,6 +350,18 @@ def train_Spike_classifier_new(n_go):
              
         return [blank_fig(), {}]
     
+    
+@app.callback([Output('feat_trace','figure')],
+              [Input('trace_go','n_clicks')],
+              prevent_initial_call=True)
+def plot_feature_traces(n_go):
+    '''Plot trace of all replicants for top feature'''
+    cmap = {'Monomer A':'royalblue','Monomer B':'indianred','Monomer C':'forestgreen','Core':'orange','RBD':'mediumpurple'}
+    df = pd.read_csv('./current_tmp_df.csv')
+    df_feat = pd.read_csv('./current_tmp_topfeats.csv')
+    feat_trace = clu.trace_single_feat(df,glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'feat'),cmap[glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'chain')])
+    
+    return [feat_trace]
     
 # Show Features in 3D Callback
 @app.callback([Output('spike1','figure'),

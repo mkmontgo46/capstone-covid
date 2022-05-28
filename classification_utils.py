@@ -112,8 +112,10 @@ def remove_corr_feats(full_df,corr_thresh= 0.65):
     '''Remove highly correlated features'''
     corr_matrix = full_df.corr()
     final_features = corr_matrix['RBD_CA0:RMSD'][(corr_matrix['RBD_CA0:RMSD'] < corr_thresh) & (corr_matrix['RBD_CA0:RMSD'] > -corr_thresh)].reset_index().loc[:,'index'].to_list()
-    if 'label' not in final_features:
-        final_features.append('label')
+    
+    for keep in ['label','Replicant','frame']:
+        if keep not in final_features:
+            final_features.append(keep)
     clf_df = full_df.loc[:,final_features]
     return clf_df
 
@@ -139,11 +141,11 @@ def curate_feats(df,rbd_wind=8,feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'
             df=drop_feats(df,f)
 #             df = df.drop(f,axis=1)
             
-    # Drop non-feature columns
-    non_features = ['frame','frame_num','Replicant']
-    for f in non_features:
-        if f in df.keys():
-            df = df.drop([f],axis=1)
+#     # Drop non-feature columns
+#     non_features = ['frame','frame_num']
+#     for f in non_features:
+#         if f in df.keys():
+#             df = df.drop([f],axis=1)
     
    
 
@@ -172,20 +174,20 @@ def load_data(fnames, is_open):
     '''Load and concatenate all datasets'''
     # fnames = list of files corresponding to featuresets to use in training. Should include full path
     # is_open = list of labels for corresponding fnames. 1 is open & 0 is closed
-
+    openlabels = ['Closed','Open']
     dfs = []
     for f in range(len(fnames)):
         df = pd.read_csv(fnames[f]).assign(label = is_open[f]).iloc[:,1:]
-        df['Replicant'] = os.path.basename(fnames[f])
+        df['Replicant'] = '/'.join(fnames[f].split('/')[-3:])
+#         df['Replicant'] = os.path.basename(fnames[f])# basename leaves duplicates (csvs in different datasets have same names)
         df['isopen'] = is_open[f]
+#         df['Replicant'] = openlabels[is_open[f]] +'_'+os.path.basename(fnames[f])
         dfs.append(df)
     return pd.concat(dfs,join='inner')
 
 def getfeatureStats(df,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
     '''Plot histograms of potential features'''
     # Drop unwanted features, restrict rbd window and threshold correlated features
-#     df = curate_feats(dfx.copy(),rbd_wind,feat_incl,corr_thresh)
-    print('plotting histograms')
     # Create mapping of feature names to columns
     feat_descMap = {'RBD__2__': 'RBD Distances',
                     'ROF' : 'Radius of Gyration',
@@ -355,13 +357,15 @@ def trace_single_feat(df,f,title_clr):
     df = df.rename(columns=rename_cols)
         
     # Create new dataframe with each replicant having different trace of feature f
+    df['frame'] = df.apply(lambda row: row['frame'].replace('frame_',''), axis=1)
+    df= df.set_index('frame')
     df_f = pd.DataFrame()
     for r in df['Replicant'].unique():
        df_f[r] = df.loc[df['Replicant']==r][f]
-
+    print(df_f)
+    
     # Plot
-    fig = px.line(df_f,title=f + ' Over a Full Trajectory',color_discrete_map=cmap,
-                 labels={'x':'Frame Number','y':f+' Value','color':'Replicant'})
+    fig = px.line(df_f,title=f + ' Over a Full Trajectory',color_discrete_map=cmap)
     fig.update_layout(template='simple_white',
                      title={'font':{'color':title_clr}})
     
