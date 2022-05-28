@@ -124,6 +124,31 @@ def gen_pipeline():
         ])
     return num_pipeline
 
+def curate_feats(df,rbd_wind=8,feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
+    '''Restrict rbd window, drop unwanted features, and threshold correlation bw features'''
+    # Limit RBD_window
+    df = restrict_RBD_window(df,rbd_wind)
+    all_feats = ['_x','_y','_z','RBD__2__','ROF','RMSD']
+    
+    # Remove highly correlated features
+    df = remove_corr_feats(df,corr_thresh)
+    
+    # Drop features user selected not to include
+    for f in all_feats:
+        if f not in feat_incl:
+            df=drop_feats(df,f)
+#             df = df.drop(f,axis=1)
+            
+    # Drop non-feature columns
+    non_features = ['frame','frame_num','Replicant']
+    for f in non_features:
+        if f in df.keys():
+            df = df.drop([f],axis=1)
+    
+   
+
+    return df
+
 def prep_ML_data(clf_df,ts,rs,labelnames):
     '''Prepare data for use in training machine learning algorithm'''
     # Split training and testing data
@@ -156,11 +181,12 @@ def load_data(fnames, is_open):
         dfs.append(df)
     return pd.concat(dfs,join='inner')
 
-def getfeatureStats(dfx,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
+def getfeatureStats(df,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
     '''Plot histograms of potential features'''
-    # Limit RBD_window
-    df = restrict_RBD_window(dfx.copy(),rbd_wind)
-    all_feats = ['_x','_y','_z','RBD__2__','ROF','RMSD']
+    # Drop unwanted features, restrict rbd window and threshold correlated features
+#     df = curate_feats(dfx.copy(),rbd_wind,feat_incl,corr_thresh)
+    print('plotting histograms')
+    # Create mapping of feature names to columns
     feat_descMap = {'RBD__2__': 'RBD Distances',
                     'ROF' : 'Radius of Gyration',
                     'RMSD' : 'RMSD',
@@ -168,24 +194,7 @@ def getfeatureStats(dfx,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','
                     '_y' : 'y location',
                     '_z' : 'z location',
                     }
-     
     featureMap = {}
-    
-    # Drop features user selected not to include
-    for f in all_feats:
-        if f not in feat_incl:
-            df = df.drop(f,axis=1)
-            
-    # Drop non-feature columns
-    non_features = ['frame','frame_num','Replicant']
-    for f in non_features:
-        if f in df.keys():
-            df = df.drop([f],axis=1)
-    
-    # Remove highly correlated features
-    df = remove_corr_feats(df,corr_thresh)
-
-    # Create mapping of feature names to columns
     for f in feat_incl:
         featureMap[f] = [col for col in df.columns.to_list() if f in col]
 
@@ -322,7 +331,7 @@ def train_sgd_model_new(df):
 
 def plot_feature_importances(df_feats):
     '''Plot bar chart of feature importances'''
-    x_vals = [glycan_bionames.get_elem(i,'feat') for i in df_feats['feats'].to_list()]
+    x_vals = [glycan_bionames.rename_feat(glycan_bionames.get_elem(i,'feat')) for i in df_feats['feats'].to_list()]
     y_vals = df_feats['importance'].to_list() 
     col_vals = [glycan_bionames.get_elem(i,'chain') for i in df_feats['feats'].to_list()]
     cmap = {'Monomer A':'royalblue','Monomer B':'indianred','Monomer C':'forestgreen','Core':'orange','RBD':'mediumpurple'}

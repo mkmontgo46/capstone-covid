@@ -12,6 +12,21 @@ def add_gly(names,idx,chain_idx,gly_idx,pos=None):
     # Add to dictionary
     names[segname] = {'position':position, 'chain':chainname}
     return names
+
+def rename_feat(featname):
+    featname = featname.replace('RBD__2__','RBD distance to ')
+    if ':ROF' in featname:
+        featname = 'Radius of Gyration for ' + featname.replace(':ROF','')
+    if ':RMSD' in featname:
+        featname = 'RMSD for ' + featname.replace(':RMSD','')
+    if '_x' in featname:
+        featname = 'x location for ' + featname.replace('_x','')
+    if '_y' in featname:
+        featname = 'y location for ' + featname.replace('_y','')
+    if '_z' in featname:
+        featname = 'z location for ' + featname.replace('_z','')
+    featname = featname.replace('_', ' at ')
+    return featname
         
 
 def get_names():

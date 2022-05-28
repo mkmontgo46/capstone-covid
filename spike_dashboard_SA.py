@@ -230,17 +230,15 @@ app.layout = html.Div(
 # Trigger Feature Engineering Callback
 @app.callback(
               [
-               Output('feature_ext','figure'),     
+               Output('feature_ext','figure'),   
                #Output('global_state_df','data')
-
               ],
                [
                Input('featureset_select','value'),
                Input('feature_select','value'),
                Input('rbd_wind','value'),
                Input('corr_thresh','value'),
-               Input('feature_eng','n_clicks'),
-                        
+               Input('feature_eng','n_clicks')       
               ],
                prevent_initial_call = True,
               )
@@ -274,9 +272,10 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
         
         # Load data
         global_state_df = clu.load_data(feat_files,is_open)
+        global_state_df = clu.curate_feats(global_state_df,rbd_wind=rbd_wind,feat_incl=feat_sel,corr_thresh=corr_thresh)
         global_state_df.to_csv('./current_tmp_df.csv')
         print('Data loaded')
-        feat_stats_fig_dict = clu.getfeatureStats(pd.DataFrame(global_state_df),)
+        feat_stats_fig_dict = clu.getfeatureStats(pd.DataFrame(global_state_df),feat_incl=feat_sel)
         print('HERE')
         return [feat_stats_fig_dict[feat_sel[0]]]
     else:
@@ -318,11 +317,12 @@ def train_Spike_classifier_new(n_go):
     update = 'Return'
     ctx = callback_context
     buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
-    if n_go > 0 :
+    if buttonID=='train_go' and n_go > 0 :
         
         print('HERE-NEW')
         # Train Model
         global_state_df  = pd.read_csv('./current_tmp_df.csv')
+        global_state_df.drop('Unnamed: 0',inplace=True,axis=1)
         #print(f'Preparing to train model-NEW , colu : {global_state_df.columns.to_list()}')
         tr_p, tr_r, ts_p, ts_r, df_feat = clu.train_sgd_model_new(pd.DataFrame(global_state_df))
         testResults = 'Test precision: ' + str(round(ts_p,3)) + ', Test recall: ' + str(round(ts_r,3))
