@@ -8,6 +8,7 @@ import glycan_bionames
 import os, glob
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 #import dash_bootstrap_components as dbc
 
@@ -45,7 +46,25 @@ app = Dash(__name__)
 app.layout = html.Div(
     children=[
         # Title
-        html.H1(children="Predicting Effects of SARS-CoV-2 Variant Mutations on Spike Protein Dynamics and Mechanism",),
+        html.Div(children=[
+                           html.Label(children='Spike',
+                                style={'font-weight':'bold',
+                                       'color':'#000080',
+                                       'font-size':48}),
+                           html.Label(children='Analytics',
+                                   style={'font-weight':'bold',
+                                          'color':'#ffa500',
+                                          'font-size':48})
+                          ],
+                 style = {'display-content':'flex',
+                          'justify-content':'flex-start'}),
+       html.Label(children=' by the Amaro Lab at UC San Diego',
+          style={'font-size':18}),
+        html.Br(), html.Label(children=' '), html.Br(),
+        html.Label(children="Predicting Effects of SARS-CoV-2 Variant Mutations on Spike Protein Dynamics and Mechanism",
+                  style={'font-weight':'italic',
+                         'font-size':18}),
+        html.Br(),
         
         #html.H3(id='update_window',
         #       children='Please select feature sets to begin',
