@@ -15,7 +15,8 @@ import numpy as np
 # --------------- Initialize Variables -----------------------
 
 # Locations to read data from
-data_dir = './'
+# data_dir = './'
+data_dir = '/net/jam-amaro-shared/dse_project/Spike_Dataset/'
 
 traj_dirs = glob.glob(os.path.join(data_dir,'*TRAJECTOR*'))
 traj_opts = []
@@ -125,22 +126,27 @@ app.layout = html.Div(
                             disabled=False,
                             
                             ),
+                # Data loading indicator
                 dcc.Loading(
                 id="loading-feat",
                 type="default",
+                    # Histograms of Potential Features
                     children=dcc.Graph(id='feature_ext', figure = blank_fig(),
                     ),
                 ),
                 html.Br(),
+                # Train Model button
                 html.Button('Train Model',
                             id='train_go',
                             n_clicks=0,
                             disabled=False, 
                             
                            ),
+                # Model training indicator
                 dcc.Loading(
                 id="loading-1",
                 type="default",
+                    # Performance label
                     children=html.H4(id='performance_label', children ='',
                     ),
                 ),
@@ -167,16 +173,29 @@ app.layout = html.Div(
 #         # Button to do everything else
 #         html.Button('Map Important Features',id='go',n_clicks = 0,
 #                    style = {'height':'35px'}),
+        
         # Plot open & closed spike with important features highlighted
         html.Div(children=[
-            dcc.Graph(id='spike1',
-            
-            style={'display': 'inline-block'}
-            ),
-            dcc.Graph(id='spike2',
-           
-            style={'display': 'inline-block'}
-            ),
+            html.Br(),
+            # Plot Scatter Button
+            html.Button('Show Features in 3D',
+                        id='scatter_go'),
+            # Scatter plotting indicator
+            dcc.Loading(
+                id='loading-scatter',
+                type='default',
+                # Scatter plots
+                children = html.Div(children=[
+                    dcc.Graph(id='spike1',
+                               figure = blank_fig(),
+                    style={'display': 'inline-block'}
+                    ),
+                    dcc.Graph(id='spike2',
+                            figure=blank_fig(),
+                    style={'display': 'inline-block'}
+                    )
+                ])
+            )
         ]),
         
         
@@ -189,7 +208,7 @@ app.layout = html.Div(
 )
 
 # -------------- Callbacks -----------------
- 
+# Trigger Feature Engineering Callback
 @app.callback(
               [
                Output('feature_ext','figure'),     
@@ -207,7 +226,7 @@ app.layout = html.Div(
                prevent_initial_call = True,
               )
 def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
-    
+    '''Curate features and plot histograms'''
     update = 'Return'
     ctx = callback_context
     buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -255,7 +274,7 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
 
 
 
-# Do everything callback
+# Train Model Callback
 @app.callback(
               [
                Output('feat_imp','figure'),
@@ -276,7 +295,7 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
                prevent_initial_call = True,
               )
 def train_Spike_classifier_new(n_go):
-
+    '''Train classifier and plot feature importances'''
     update = 'Return'
     ctx = callback_context
     buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -290,15 +309,51 @@ def train_Spike_classifier_new(n_go):
         testResults = 'Test precision: ' + str(round(ts_p,3)) + ', Test recall: ' + str(round(ts_r,3))
         print(f'Training Completed : {testResults}')
         # Filter dataframe to top 10 features
-        top_feats = df_feat[:10]['feats'].to_list() + ['Replicant','isopen']        
+        top_feats = df_feat[:10]['feats'].to_list() + ['Replicant','isopen']    
         #df = global_state_df[top_feats]
         df_feat = df_feat[:10]
+        df_feat.to_csv('./current_tmp_topfeats.csv')
         feat_imp_fig = clu.plot_feature_importances(df_feat)
         #return [feat_imp_fig, testResults, df_feat, update]
         return [feat_imp_fig,testResults]
     else:
              
         return [blank_fig(), {}]
+    
+    
+# Show Features in 3D Callback
+@app.callback([Output('spike1','figure'),
+               Output('spike2','figure')],
+              [Input('featureset_select','value'),
+               Input('scatter_go','n_clicks')],
+              prevent_initial_call=True)
+def scatterplot_trajectories(traj_sel,n_go):
+    '''Load trajectories and plot in 3D'''
+    ctx = callback_context
+    buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
+    if buttonID == 'scatter_go':
+        # Load important features
+        df_feat = pd.read_csv('./current_tmp_topfeats.csv')
+        
+        # Load trajectories - for now load first directories with and without 'closed' in the name
+        print('Loading trajectories...')
+        closed_dirs = traj_sel[['closed' in i for i in traj_sel].index(True)]
+        open_dirs = traj_sel[['closed' in i for i in traj_sel].index(False)]
+        traj_open = mdu.load_traj(open_dirs)
+        traj_closed = mdu.load_traj(closed_dirs)
+
+        # Parse trajectories
+        print('Parsing trajectories...')
+        atom_id_open = mdu.parse_traj(traj_open)
+        atom_id_closed = mdu.parse_traj(traj_closed)
+
+        # Create figures
+        spike1_fig = mdu.viz_traj(traj_closed,atom_id_closed, df_feat,'Closed Spike','red')
+        spike2_fig = mdu.viz_traj(traj_open,atom_id_open, df_feat,'Open Spike','blue')
+        
+        return [spike1_fig, spike2_fig]
+    else:
+        return [blank_fig(), blank_fig()]
 
 # Do everything callback
 """

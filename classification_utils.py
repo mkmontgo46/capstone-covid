@@ -157,6 +157,8 @@ def load_data(fnames, is_open):
     return pd.concat(dfs,join='inner')
 
 def getfeatureStats(dfx,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
+    '''Plot histograms of potential features'''
+    # Limit RBD_window
     df = restrict_RBD_window(dfx.copy(),rbd_wind)
     all_feats = ['_x','_y','_z','RBD__2__','ROF','RMSD']
     feat_descMap = {'RBD__2__': 'RBD Distances',
@@ -169,11 +171,10 @@ def getfeatureStats(dfx,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','
      
     featureMap = {}
     
+    # Drop features user selected not to include
     for f in all_feats:
         if f not in feat_incl:
             df = df.drop(f,axis=1)
-
-  #    print(featureMap)
             
     # Drop non-feature columns
     non_features = ['frame','frame_num','Replicant']
@@ -184,6 +185,7 @@ def getfeatureStats(dfx,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','
     # Remove highly correlated features
     df = remove_corr_feats(df,corr_thresh)
 
+    # Create mapping of feature names to columns
     for f in feat_incl:
         featureMap[f] = [col for col in df.columns.to_list() if f in col]
 
@@ -193,7 +195,9 @@ def getfeatureStats(dfx,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','
     #    print(f)
         #print(df.loc[:,featureMap[f][0]])
 
-    cols = plotly.colors.DEFAULT_PLOTLY_COLORS +  plotly.colors.qualitative.Dark24
+    # Select colors to use for plotting. Default is 58 options
+    cols = plotly.colors.DEFAULT_PLOTLY_COLORS +  plotly.colors.qualitative.Dark24 + plotly.colors.qualitative.Light24
+    print(len(cols))
     figTraceMLup = {}
     for k in featureMap:
         figTraceMLup[k] = make_subplots(1,2, subplot_titles= ['open', 'closed'])
@@ -206,7 +210,7 @@ def getfeatureStats(dfx,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','
                 else :
                     shl,i = False,0
                 #print(f'l = {l} , i ={i}, {featureMap[k].index(c)} , total_cols = {len(cols)}, {cols[featureMap[k].index(c)]}')
-                #print(cols[featureMap[k].index(c)])
+                
                 figTraceMLup[k].add_trace(go.Histogram(x=df[cur_mask][c],name=c,showlegend=shl,marker = dict(color = cols[featureMap[k].index(c)])) ,  1, i+1)
             #figTraceMLup[k].add_trace(go.Histogram(x=train_X[c], y = train_labels, name=c,showlegend=True))
                 
