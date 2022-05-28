@@ -1,6 +1,7 @@
 # Import libraries
 from dash import Dash, html, dcc, Input, Output, State, callback_context
 import plotly_express as px
+import plotly.graph_objects as go
 import md_utils as mdu
 import classification_utils as clu
 import glycan_bionames
@@ -30,6 +31,13 @@ feat_opts = [{'label':'RBD Distances','value':'RBD__2__'},
              {'label':'z location','value':'_z'}]
 feat_vals = ['RBD__2__','ROF','RMSD','_x','_y','_z']
 
+def blank_fig():
+    fig = go.Figure(go.Scatter(x=[], y = []))
+    fig.update_layout(template = None)
+    fig.update_xaxes(showgrid = False, showticklabels = False, zeroline=False)
+    fig.update_yaxes(showgrid = False, showticklabels = False, zeroline=False)
+    
+    return fig
 # -------------- Create dashboard --------------
 app = Dash(__name__)
 
@@ -63,7 +71,7 @@ app.layout = html.Div(
         html.Div(children=[
             html.Div(children=[
                 # Drop-down list for features to include
-                html.Label('Select which features to use:'),
+                html.Label('Select attributes for feature Engineering:'),
                 html.Br(),
                 dcc.Dropdown(id='feature_select',
                              options=feat_opts,
@@ -108,13 +116,27 @@ app.layout = html.Div(
         
         html.Div(children=[
             html.Div(children=[
-                # Button to train model
+                # Feature Engineering
                 html.Br(),
                 #html.Br(),
+                html.Button('Trigger Feature Engineering',
+                            id='feature_eng',
+                            n_clicks=0,
+                            disabled=False,
+                            
+                            ),
+                dcc.Loading(
+                id="loading-feat",
+                type="default",
+                    children=dcc.Graph(id='feature_ext', figure = blank_fig(),
+                    ),
+                ),
+                html.Br(),
                 html.Button('Train Model',
                             id='train_go',
                             n_clicks=0,
-                            disabled=False,                            
+                            disabled=False, 
+                            
                            ),
                 dcc.Loading(
                 id="loading-1",
@@ -124,23 +146,22 @@ app.layout = html.Div(
                 ),
                 ]
             ),
-            
+          
         ],
-        style={'display':'flex',
-                       'justify-content':'space-around',
-                       'align-items':'flex-start',
-                       'column-gap':'50px'},
+        #style={'display':'flex',
+        #               'justify-content':'space-around',
+        #               'align-items':'flex-start',
+        #               'column-gap':'50px'},
         
         ),
         html.Div(children=[
-            # Label performance of model
-            
+            # Feature Stats
+            #dcc.Graph(id='feat_trace', figure = blank_fig()),
             # Plot bar graph of feature importances
-            dcc.Graph(id='feat_imp',figure={}),
+            dcc.Graph(id='feat_imp', figure = blank_fig()),
             
             # Plot top feature over trajectory
-            dcc.Graph(id='feat_trace',
-                          figure={}),
+            
         ]),
         
 #         # Button to do everything else
@@ -149,11 +170,11 @@ app.layout = html.Div(
         # Plot open & closed spike with important features highlighted
         html.Div(children=[
             dcc.Graph(id='spike1',
-            figure={},
+            
             style={'display': 'inline-block'}
             ),
             dcc.Graph(id='spike2',
-            figure={},
+           
             style={'display': 'inline-block'}
             ),
         ]),
@@ -162,43 +183,40 @@ app.layout = html.Div(
 
         # Store variables
         dcc.Store(id='df'),
+        #dcc.Store(id='global_state_df'),
         dcc.Store(id='df_feat')
     ]
 )
 
 # -------------- Callbacks -----------------
-
-
-
-# Do everything callback
+ 
 @app.callback(
               [
-               Output('feat_imp','figure'),
-               Output('performance_label','children'),
-               
-              # Output('df_feat','data'),
-              # Output('update_window','children')
+               Output('feature_ext','figure'),     
+               #Output('global_state_df','data')
+
               ],
                [
                Input('featureset_select','value'),
                Input('feature_select','value'),
                Input('rbd_wind','value'),
                Input('corr_thresh','value'),
-               Input('train_go','n_clicks'),              
+               Input('feature_eng','n_clicks'),
+                        
               ],
                prevent_initial_call = True,
               )
-def train_Spike_classifier(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
-
+def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
+    
     update = 'Return'
     ctx = callback_context
     buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
-    if buttonID == 'train_go':
+    if buttonID == 'feature_eng':
         # Confirm at least 2 feature sets selected
         if traj_sel is None or len(traj_sel) < 2:
             update = 'Please select at least 2 feature sets!'
-            #return [{}, {}, {}, update]
-            return [{}, {}]
+            
+            return [blank_fig()]
         
         # Get list of csv files containing features
         print('Loading feature sets')
@@ -208,33 +226,21 @@ def train_Spike_classifier(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
 
         # For now, assume if dataset not labeled as "closed", is open
         is_open = ['closed' not in d for d in feat_files]
-        print(is_open)
+        #print(is_open)
         
         # Confirm both open & closed data present
         if len(np.unique(is_open)) < 2:
             update = 'Please select both an open and a closed dataset!'
-            #return [{}, {}, {}, update]
-            return [{}, {}]
+            
+            return [blank_fig()]
         
         # Load data
-        df = clu.load_data(feat_files,is_open)
+        global_state_df = clu.load_data(feat_files,is_open)
+        global_state_df.to_csv('./current_tmp_df.csv')
         print('Data loaded')
-        
-        # Train Model
-        print('Preparing to train model')
-        tr_p, tr_r, ts_p, ts_r, df_feat = clu.train_sgd_model(pd.DataFrame(df),
-                                                              feat_incl=feat_sel,
-                                                              rbd_wind=rbd_wind,
-                                                              corr_thresh=corr_thresh)
-        testResults = 'Test precision: ' + str(round(ts_p,3)) + ', Test recall: ' + str(round(ts_r,3))
-        print(f'Training Completed : {testResults}')
-        # Filter dataframe to top 10 features
-        top_feats = df_feat[:10]['feats'].to_list() + ['Replicant','isopen']        
-        df = df[top_feats]
-        df_feat = df_feat[:10]
-        feat_imp_fig = clu.plot_feature_importances(df_feat)
-        #return [feat_imp_fig, testResults, df_feat, update]
-        return [feat_imp_fig,testResults]
+        feat_stats_fig_dict = clu.getfeatureStats(pd.DataFrame(global_state_df),)
+        print('HERE')
+        return [feat_stats_fig_dict[feat_sel[0]]]
     else:
         if len(traj_sel) == 0:
             update = 'Please select at least 2 feature sets'
@@ -245,7 +251,54 @@ def train_Spike_classifier(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
         else:
             update = "I'm confused..."
         #return [{}, {}, {}, update]
-        return [{}, {}]
+        return [blank_fig()]
+
+
+
+# Do everything callback
+@app.callback(
+              [
+               Output('feat_imp','figure'),
+               Output('performance_label','children'),
+              #Output('feat_trace', 'figure'),
+              # Output('df_feat','data'),
+              # Output('update_window','children')
+              ],
+               [
+               #Input('featureset_select','value'),
+               #Input('feature_select','value'),
+               #Input('rbd_wind','value'),
+               #Input('corr_thresh','value'),
+               #Input('global_state_df','data'),
+               Input('train_go','n_clicks'),
+                        
+              ],
+               prevent_initial_call = True,
+              )
+def train_Spike_classifier_new(n_go):
+
+    update = 'Return'
+    ctx = callback_context
+    buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
+    if n_go > 0 :
+        
+        print('HERE-NEW')
+        # Train Model
+        global_state_df  = pd.read_csv('./current_tmp_df.csv')
+        #print(f'Preparing to train model-NEW , colu : {global_state_df.columns.to_list()}')
+        tr_p, tr_r, ts_p, ts_r, df_feat = clu.train_sgd_model_new(pd.DataFrame(global_state_df))
+        testResults = 'Test precision: ' + str(round(ts_p,3)) + ', Test recall: ' + str(round(ts_r,3))
+        print(f'Training Completed : {testResults}')
+        # Filter dataframe to top 10 features
+        top_feats = df_feat[:10]['feats'].to_list() + ['Replicant','isopen']        
+        #df = global_state_df[top_feats]
+        df_feat = df_feat[:10]
+        feat_imp_fig = clu.plot_feature_importances(df_feat)
+        #return [feat_imp_fig, testResults, df_feat, update]
+        return [feat_imp_fig,testResults]
+    else:
+             
+        return [blank_fig(), {}]
 
 # Do everything callback
 """

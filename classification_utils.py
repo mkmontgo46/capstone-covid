@@ -1,5 +1,10 @@
 # Python ≥3.5 is required
 import sys, re
+import plotly
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+import plotly.express as px
+from tkinter.tix import COLUMN
 assert sys.version_info >= (3, 5)
 
 # Is this notebook running on Colab or Kaggle?
@@ -146,11 +151,77 @@ def load_data(fnames, is_open):
     dfs = []
     for f in range(len(fnames)):
         df = pd.read_csv(fnames[f]).assign(label = is_open[f]).iloc[:,1:]
-        df['Replicant'] = fnames[f].split('TRAJECTORIES_')[1]
+        df['Replicant'] = os.path.basename(fnames[f])
         df['isopen'] = is_open[f]
         dfs.append(df)
     return pd.concat(dfs,join='inner')
 
+def getfeatureStats(dfx,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
+    df = restrict_RBD_window(dfx.copy(),rbd_wind)
+    all_feats = ['_x','_y','_z','RBD__2__','ROF','RMSD']
+    feat_descMap = {'RBD__2__': 'RBD Distances',
+                    'ROF' : 'Radius of Gyration',
+                    'RMSD' : 'RMSD',
+                    '_x' : 'x location',
+                    '_y' : 'y location',
+                    '_z' : 'z location',
+                    }
+     
+    featureMap = {}
+    
+    for f in all_feats:
+        if f not in feat_incl:
+            df = df.drop(f,axis=1)
+
+  #    print(featureMap)
+            
+    # Drop non-feature columns
+    non_features = ['frame','frame_num','Replicant']
+    for f in non_features:
+        if f in df.keys():
+            df = df.drop([f],axis=1)
+    
+    # Remove highly correlated features
+    df = remove_corr_feats(df,corr_thresh)
+
+    for f in feat_incl:
+        featureMap[f] = [col for col in df.columns.to_list() if f in col]
+
+    #print('HERE')
+    #print(df.columns.to_list())
+    #for f in feat_incl :
+    #    print(f)
+        #print(df.loc[:,featureMap[f][0]])
+
+    cols = plotly.colors.DEFAULT_PLOTLY_COLORS +  plotly.colors.qualitative.Dark24
+    figTraceMLup = {}
+    for k in featureMap:
+        figTraceMLup[k] = make_subplots(1,2, subplot_titles= ['open', 'closed'])
+        #figTraceMLup[k] = go.Figure()
+        for c in featureMap[k]:
+            for l in df.label.unique():
+                cur_mask = df.label == l
+                if l :
+                    shl,i = True,1
+                else :
+                    shl,i = False,0
+                #print(f'l = {l} , i ={i}, {featureMap[k].index(c)} , total_cols = {len(cols)}, {cols[featureMap[k].index(c)]}')
+                #print(cols[featureMap[k].index(c)])
+                figTraceMLup[k].add_trace(go.Histogram(x=df[cur_mask][c],name=c,showlegend=shl,marker = dict(color = cols[featureMap[k].index(c)])) ,  1, i+1)
+            #figTraceMLup[k].add_trace(go.Histogram(x=train_X[c], y = train_labels, name=c,showlegend=True))
+                
+        figTraceMLup[k].update_layout(
+        title_text= f'Feature Engineered from {feat_descMap[k]}', # title of plot
+        xaxis_title_text='Value', # xaxis label
+        yaxis_title_text='Count', # yaxis label
+        bargap=0.2, # gap between bars of adjacent location coordinates
+        bargroupgap=0.1 # gap between bars of the same location coordinates
+        )
+    #return {f : px.histogram(df[featureMap[f]].assign(label = df.label ), facet_row= 'label') for f in feat_incl}
+    return figTraceMLup
+        
+    
+    
     
 def train_sgd_model(df, rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
     '''Train SGD classifier on input data using input features'''
@@ -168,6 +239,12 @@ def train_sgd_model(df, rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','
     
     # Drop unwanted features
     all_feats = ['_x','_y','_z','RBD__2__','ROF','RMSD']
+    featureMap = {}
+    for feat_cat in all_feats:
+        featureMap[feat_cat] = [col for col in df.columns.to_list() if feat_cat in col]
+
+    #print(featureMap)
+
     for f in all_feats:
         if f not in feat_incl:
             df = drop_feats(df,f)
@@ -201,6 +278,43 @@ def train_sgd_model(df, rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','
 
     return train_prec, train_recall, test_prec, test_recall, dfFeats
 
+def train_sgd_model_new(df):
+    '''Train SGD classifier on input data using input features'''
+    # df = dataframe 
+    # rbd_wind = distance in nm. Only glycans with COM < rbd_wind away from RBD will be included in analysis
+    # feat_incl = list of features to include. Options are '_x','_y','_z','RBD__2__','ROF','RMSD'
+    # corr_thresh = maximum threshold for correlations between features. Features with higher correlations will be dropped
+    
+    # Set some variables
+    tt_split = 0.3
+    rand_seed = 42
+    
+    # Drop non-feature columns
+    non_features = ['frame','frame_num','isopen','Replicant']
+    for f in non_features:
+        if f in df.keys():
+            df = df.drop([f],axis=1)
+        
+    # Perform train/test split & normalize
+    train_X, test_X, train_X_prepared, test_X_prepared, train_labels, test_labels = prep_ML_data(df,tt_split,rand_seed,df.label)
+    
+    # Train model
+    sgd_clf = SGDClassifier(max_iter=1000, tol=1e-3, random_state=42)
+    sgd_clf.fit(train_X_prepared,train_labels)
+    
+    # Get performance on train & test data
+    y_train_pred = sgd_clf.predict(train_X_prepared)
+    y_test_pred = sgd_clf.predict(test_X_prepared)
+    train_prec = precision_score(train_labels, y_train_pred)
+    train_recall = recall_score(train_labels, y_train_pred)
+    test_prec = precision_score(test_labels, y_test_pred)
+    test_recall = recall_score(test_labels, y_test_pred)
+    
+    # Get feature importances
+    dfFeats = pd.DataFrame({'feats':train_X.columns.to_list(),'importance':np.abs(sgd_clf.coef_[0])}).sort_values('importance', ascending=False)
+
+    return train_prec, train_recall, test_prec, test_recall, dfFeats
+
 
 def plot_feature_importances(df_feats):
     '''Plot bar chart of feature importances'''
@@ -209,7 +323,7 @@ def plot_feature_importances(df_feats):
     col_vals = [glycan_bionames.get_elem(i,'chain') for i in df_feats['feats'].to_list()]
     cmap = {'Monomer A':'royalblue','Monomer B':'indianred','Monomer C':'forestgreen','Core':'orange','RBD':'mediumpurple'}
 
-    fig1 = px.bar(x=x_vals,y=y_vals,color=col_vals,title='Important Features',color_discrete_map=cmap, labels={'x':'Feature','y':'Importance','color':'Substructure'}).update_xaxes(categoryorder='total descending')
+    fig1 = px.bar(x=x_vals,y=y_vals,color=col_vals,title='Feature Importance',color_discrete_map=cmap, labels={'x':'Feature','y':'Importance','color':'Substructure'}).update_xaxes(categoryorder='total descending')
     fig1.update_layout(template='simple_white')
     return fig1
 
