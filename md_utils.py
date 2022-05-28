@@ -117,10 +117,14 @@ def viz_traj(traj,atom_id_LUP, dfFeats,title_str,title_clr):
     coord_df['marker_size'] = coord_df.apply(lambda row: assign_marker_size(row['type']),axis=1)
     
     # Create custom colormap
-    cmap = {}; bkg = ['Backbone','Sidechain','Glycans','RBD','Central Helix']; ct = 0
+    cmap = {}; bkg = ['Backbone','Sidechain','Glycans']; ct = 2
     for s in coord_df['Substructure'].unique():
         if s in bkg:
             cmap[s] = '#7f7f7f'
+        elif s == 'RBD':
+            cmap[s] = px.colors.qualitative.Plotly[0]
+        elif s == 'Central Helix':
+            cmap[s] = px.colors.qualitative.Plotly[1]
         else:
             cmap[s] = px.colors.qualitative.Plotly[ct]
             ct += 1
