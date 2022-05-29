@@ -4,6 +4,7 @@ import plotly
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import plotly.express as px
+import plotly.figure_factory as ff
 from tkinter.tix import COLUMN
 assert sys.version_info >= (3, 5)
 
@@ -359,51 +360,69 @@ def trace_single_feat(df,f,title_clr):
     # Create new dataframe with each replicant having different trace of feature f
     df['frame'] = df.apply(lambda row: row['frame'].replace('frame_',''), axis=1)
     df= df.set_index('frame')
-    df_f = pd.DataFrame()
-    for r in df['Replicant'].unique():
-       df_f[r] = df.loc[df['Replicant']==r][f]
-    print(df_f)
+    df1 = df.loc[df['isopen']==0]
+    df2 = df.loc[df['isopen']==1]
+    df_f1 = pd.DataFrame()
+    df_f2 = pd.DataFrame()
+    for r in df1['Replicant'].unique():
+       df_f1[r] = df1.loc[df1['Replicant']==r][f]
+    for r in df2['Replicant'].unique():
+       df_f2[r] = df2.loc[df2['Replicant']==r][f]
+    
+    print(df_f1.head())
     
     # Plot
-    fig = px.line(df_f,title=f + ' Over a Full Trajectory',color_discrete_map=cmap)
-    fig.update_layout(template='simple_white',
-                     title={'font':{'color':title_clr}},
-                     showlegend=False)
+#     fig = px.line(df_f,title=f + ' Over a Full Trajectory',color_discrete_map=cmap)
+#     fig.update_layout(template='simple_white',
+#                      title={'font':{'color':title_clr}},
+#                      showlegend=False)
+    fig = go.Figure()
+    fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.7, 0.3])
+    for c in df_f1.columns:
+        fig.append_trace(go.Scatter(x=df_f1.index,y=df_f1[c],mode='lines', name='Closed', legendgroup='group1',showlegend=False,marker_color='red'),1,1)
+    for c in df_f2.columns:
+        fig.append_trace(go.Scatter(x=df_f2.index,y=df_f2[c], mode='lines',name='Open',legendgroup='group2',showlegend=False,marker_color='blue'),1,1)
     
     
     # ------------ Combine w/ Histogram ----------------
-    fig2 = hist_single_feat(df,f,title_clr)
+    t1,t2 = hist_single_feat(df,f,title_clr)
+    fig.append_trace(t1,1,2)
+    fig.append_trace(t2,1,2)
+    fig.update_layout(
+        autosize=True,
+        hovermode='closest',
+        template='plotly_white',
+        title={'font':{'color':title_clr},
+                            'text':glycan_bionames.rename_feat(f) + ' Over a Full Trajectory'}
+    )
     
     # For as many traces that exist per Express figure, get the traces from each plot and store them in an array.
     # This is essentially breaking down the Express fig into it's traces
-    line_traces = []
-    hist_traces = []
-    for trace in range(len(fig["data"])):
-        line_traces.append(fig["data"][trace])
-    for trace in range(len(fig2["data"])):
-        hist_traces.append(fig2["data"][trace])
+#     line_traces = []
+#     hist_traces = []
+#     for trace in range(len(fig["data"])):
+#         line_traces.append(fig["data"][trace])
+#     for trace in range(len(fig2["data"])):
+#         hist_traces.append(fig2["data"][trace])
 
-    #Create a 1x2 subplot
-    full_figure = sp.make_subplots(rows=1, cols=2, column_widths = [0.7, 0.3], shared_yaxes = True) 
+#     #Create a 1x2 subplot
+#     full_figure = sp.make_subplots(rows=1, cols=2, column_widths = [0.7, 0.3], shared_yaxes = True) 
 
-    # Get the Express fig broken down as traces and add the traces to the proper plot within in the subplot
-    for trace in line_traces:
-        full_figure.append_trace(trace, row=1, col=1)
-    full_figure.for_each_trace(lambda t: t.update(showlegend=False))
-    for trace in hist_traces:
-        full_figure.append_trace(trace, row=1, col=2)
+#     # Get the Express fig broken down as traces and add the traces to the proper plot within in the subplot
+#     for trace in line_traces:
+#         full_figure.append_trace(trace, row=1, col=1)
+#     full_figure.for_each_trace(lambda t: t.update(showlegend=False))
+#     for trace in hist_traces:
+#         full_figure.append_trace(trace, row=1, col=2)
 
     # Format full figure
-    full_figure.update_yaxes(showticklabels=False,row=1,col=2)
-    full_figure.update_yaxes(title_text=glycan_bionames.rename_feat(f),row=1,col=1)
-    full_figure.update_xaxes(title_text='Frame',row=1,col=1)
-    full_figure.update_xaxes(title_text='Frequency',row=1,col=2)
-    full_figure.update_layout(template='simple_white',
-                     title={'font':{'color':title_clr},
-                            'text':glycan_bionames.rename_feat(f) + ' Over a Full Trajectory'})
+    fig.update_yaxes(showticklabels=False,row=1,col=2)
+    fig.update_yaxes(title_text=glycan_bionames.rename_feat(f),row=1,col=1)
+    fig.update_xaxes(title_text='Frame',row=1,col=1)
+    fig.update_xaxes(title_text='Frequency',row=1,col=2)
     
     
-    return full_figure
+    return fig
 
 def hist_single_feat(df,f, title_clr):
     '''Draw histogram for feature f'''
@@ -420,7 +439,9 @@ def hist_single_feat(df,f, title_clr):
     labels = ['Closed','Open']
     df['state'] = df.apply(lambda row: labels[int(row['isopen'])], axis=1)
         
-    fig = px.histogram(df,y=f,color = 'state',title=f,color_discrete_map = cmap)
-    fig.update_layout(template='simple_white',
-                     title={'font':{'color':title_clr}})
-    return fig
+#     fig = px.histogram(df,y=f,color = 'state',title=f,color_discrete_map = cmap,opacity=1)
+#     fig.update_layout(template='simple_white',
+#                      title={'font':{'color':title_clr}})
+    fig1 = go.Histogram(y=df[df['state']=='Closed'][f],name='Closed', legendgroup='group1',showlegend=True,marker_color='red')
+    fig2 = go.Histogram(y=df[df['state']=='Open'][f],name='Open', legendgroup='group2',showlegend=True, marker_color='blue')
+    return fig1,fig2
