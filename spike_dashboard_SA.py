@@ -1,5 +1,6 @@
 # Import libraries
 from dash import Dash, html, dcc, Input, Output, State, callback_context
+import dash_bootstrap_components as dbc
 import plotly_express as px
 import plotly.graph_objects as go
 import md_utils as mdu
@@ -157,6 +158,15 @@ app.layout = html.Div(
                     children=dcc.Graph(id='feature_ext', figure = blank_fig(),
                     ),
                 ),
+                dbc.Popover(
+                    [
+                        dbc.PopoverHeader("Select at least 1 Open and 1 Closed DataSet"),
+                        
+                    ],
+                    id="popover",
+                    is_open=False,
+                    target="featureset_select",
+                ),
                 html.Br(),
                 # Train Model button
                 html.Button('Train Model',
@@ -259,11 +269,13 @@ def enable_feature_engineering(traj_sel):
 @app.callback(
               [
                Output('feature_ext','figure'),  
+               Output('popover', 'is_open'),
                Output('train_go','disabled')
                #Output('global_state_df','data')
               ],
                [
                Input('featureset_select','value'),
+               State('popover', 'is_open'),
                Input('feature_select','value'),
                Input('rbd_wind','value'),
                Input('corr_thresh','value'),
@@ -271,7 +283,7 @@ def enable_feature_engineering(traj_sel):
               ],
                prevent_initial_call = True,
               )
-def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
+def feature_Engineering(traj_sel,Iso,feat_sel,rbd_wind,corr_thresh,n_go):
     '''Curate features and plot histograms'''
     update = 'Return'
     ctx = callback_context
@@ -281,7 +293,7 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
         if traj_sel is None or len(traj_sel) < 2:
             update = 'Please select at least 2 feature sets!'
             
-            return [blank_fig(), True]
+            return [blank_fig(), True, True]
         
         # Get list of csv files containing features
         print('Loading feature sets')
@@ -296,7 +308,7 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
         if len(np.unique(is_open)) < 2:
             update = 'Please select both an open and a closed dataset!'
             
-            return [blank_fig(), True]
+            return [blank_fig(), True, True]
         
         # Load data
         global_state_df = clu.load_data(feat_files,is_open)
@@ -305,7 +317,7 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
         print('Data loaded')
         feat_stats_fig_dict = clu.getfeatureStats(pd.DataFrame(global_state_df),feat_incl=feat_sel)
         print('Feature Histograms Plotted')
-        return [feat_stats_fig_dict[feat_sel[0]], False]
+        return [feat_stats_fig_dict[feat_sel[0]], True, False]
     else:
         if len(traj_sel) == 0:
             update = 'Please select at least 2 feature sets'
@@ -316,7 +328,7 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
         else:
             update = "I'm confused..."
         #return [{}, {}, {}, update]
-        return [blank_fig(), True]
+        return [blank_fig(), True, True]
 
 
 
