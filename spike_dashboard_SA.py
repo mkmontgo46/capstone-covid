@@ -33,6 +33,7 @@ feat_vals = ['RBD__2__','ROF','RMSD','_x','_y','_z']
 
 # Define colors to use
 closed_clr, open_clr = clu.get_label_colors()
+label_cmap = {'Closed':closed_clr,'Open':open_clr}
 cmap=clu.get_substruct_cmap()
 
 def blank_fig():
@@ -131,7 +132,6 @@ app.layout = html.Div(
             html.Div(children=[
                 # Feature Engineering
                 html.Br(),
-                #html.Br(),
                 html.Button('Trigger Feature Engineering',
                             id='feature_eng',
                             n_clicks=0,
@@ -191,7 +191,6 @@ app.layout = html.Div(
         
         ),
         html.Div(children=[
-            # Feature Stats
             # Plot bar graph of feature importances
             dcc.Graph(id='feat_imp', figure = blank_fig()),            
         ]),
@@ -233,10 +232,6 @@ app.layout = html.Div(
                 ])
             )
         ]),
-
-        # Store variables
-        dcc.Store(id='df'),
-        dcc.Store(id='df_feat')
     ]
 )
 
@@ -343,7 +338,6 @@ def feature_Engineering(traj_sel,Iso,feat_sel,rbd_wind,corr_thresh,n_go,view_fea
         return [blank_fig(), True, True, view_feat]
 
 
-
 # Train Model Callback
 @app.callback(
               [
@@ -366,7 +360,7 @@ def train_Spike_classifier_new(n_go):
         # Train Model
         global_state_df  = pd.read_csv('./current_tmp_df.csv')
         global_state_df.drop(['Unnamed: 0'],inplace=True,axis=1)
-        tr_p, tr_r, ts_p, ts_r, df_feat = clu.train_sgd_model_new(pd.DataFrame(global_state_df.copy()))
+        tr_p, tr_r, ts_p, ts_r, df_feat = clu.train_sgd_model(global_state_df.copy())
         testResults = 'Test precision: ' + str(round(ts_p,3)) + ', Test recall: ' + str(round(ts_r,3))
         print(f'Training Completed : {testResults}')
         
@@ -382,6 +376,7 @@ def train_Spike_classifier_new(n_go):
         # Generate plot of feature importances
         feat_imp_fig = clu.plot_feature_importances(df_feat)
         
+        # Set clickdata to trigger feature trace
         clickData = {'points':[{'x':glycan_bionames.rename_feat(glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'feat'))}]}
         
         return [feat_imp_fig,testResults, clickData]
@@ -409,7 +404,7 @@ def plot_feature_traces(clickData):
         feat_color = cmap[feat.split('at ')[-1]]
     
         # Plot
-        feat_trace = clu.trace_single_feat(df,feat,feat_color)
+        feat_trace = clu.trace_single_feat(df,feat,feat_color,label_cmap)
     
         return [feat_trace, False]
     else:
@@ -456,11 +451,13 @@ def scatterplot_trajectories(traj_sel,n_go,spike1_fig,spike2_fig,scene1,scene2):
         
         return [spike1_fig, spike2_fig]
     elif buttonID == 'spike1':
+        # Align cameras to fig 1
         cam1 = scene1['scene.camera']
         spike1_fig['layout']['scene']['camera'] = cam1
         spike2_fig['layout']['scene']['camera'] = cam1
         
     elif buttonID == 'spike2':
+        # Align cameras to fig 2
         cam2 = scene2['scene.camera']
         spike1_fig['layout']['scene']['camera'] = cam2
         spike2_fig['layout']['scene']['camera'] = cam2

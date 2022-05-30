@@ -40,13 +40,16 @@ def get_xyz_perFrame(traj,atom_ids):
 
 def gen_xyz_Table_4_LUP(traj, LUP , keyNames =['sidechain','RBD_CA', 'CH_CA', 'GLY','backbone'] ):
     frame_0_coord_df = pd.DataFrame(columns=['type','typeID','x','y','z'])
-    i = 0 
+    i = 0; frames = []
     for k in LUP.keys():
         if k in keyNames:
-            frame_0_coord_df = (frame_0_coord_df
-            .append(get_xyz_perFrame(traj,LUP[k]).assign(type = k).assign(typeID = i))
-                               )
+            frames.append(get_xyz_perFrame(traj,LUP[k]).assign(type = k).assign(typeID = i))
             i += 1
+#             frame_0_coord_df = (frame_0_coord_df
+#             .append()
+#                                )
+    frame_0_coord_df = pd.concat(frames)
+            
     return frame_0_coord_df
 
 
@@ -80,7 +83,6 @@ def parse_traj(traj):
 def assign_marker_size(atom_type):
     '''Assign marker size and symbol for an atom of input type'''
     bkg = ['backbone','sidechain','GLY','RBD_CA','CH_CA']
-#     marker_sizes = {'backbone':2,'sidechain':2,'GLY':2,'RBD_CA':12,'CH_CA':2}
     if atom_type in bkg:
         return 1
     else:

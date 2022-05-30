@@ -170,7 +170,7 @@ def getfeatureStats(df, feat_incl=['RBD__2__','ROF','RMSD','_x','_y','_z'], feat
             else :
                 shl,i = False,0
             # Add histogram to figure
-            fig.add_trace(go.Histogram(x=df[cur_mask][c],name=c,showlegend=shl,marker = dict(color = cols[featureMap[k].index(c)])) ,1, i+1)
+            fig.add_trace(go.Histogram(x=df[cur_mask][c],name=c,legendgroup=c,showlegend=shl,marker = dict(color = cols[featureMap[k].index(c)])) ,1, i+1)
                 
         # Sync x axis
         xmins.append(min(df[c]))
@@ -189,93 +189,10 @@ def getfeatureStats(df, feat_incl=['RBD__2__','ROF','RMSD','_x','_y','_z'], feat
         yaxis_title_text = 'Count' #yaxis label
     )
 
-    return fig
+    return fig   
     
-#     figTraceMLup = {}
-#     for k in featureMap:
-#         # Create figure
-#         figTraceMLup[k] = make_subplots(1,2, subplot_titles= ['Open', 'Closed'],shared_xaxes=True)
-#         for c in featureMap[k]:
-#             for l in df.label.unique():
-#                 cur_mask = df.label == l
-#                 if l :
-#                     shl,i = True,1
-#                 else :
-#                     shl,i = False,0
-#                 # Add histogram to figure
-#                 figTraceMLup[k].add_trace(go.Histogram(x=df[cur_mask][c],name=c,showlegend=shl,marker = dict(color = cols[featureMap[k].index(c)])) ,1, i+1)
-#         figTraceMLup[k].update_xaxes(title_text=feat_descMap[k],row=1,col=1)
-#         figTraceMLup[k].update_xaxes(title_text=feat_descMap[k],row=1,col=2)
-        
-#         # Format
-#         figTraceMLup[k].update_layout(
-#             template='plotly_white',
-#             title_text= f'Features Engineered from {feat_descMap[k]}', # title of plot
-# #             xaxis_title_text='Value', # xaxis label
-#             yaxis_title_text='Count', # yaxis label
-#     #         bargap=0.01, # gap between bars of adjacent location coordinates
-#     #         bargroupgap=0.1 # gap between bars of the same location coordinates
-#             )
-        
-#     return figTraceMLup
-        
-    
-    
-    
-def train_sgd_model(df, rbd_wind=4, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
-    '''Train SGD classifier on input data using input features'''
-    # df = dataframe 
-    # rbd_wind = distance in nm. Only glycans with COM < rbd_wind away from RBD will be included in analysis
-    # feat_incl = list of features to include. Options are '_x','_y','_z','RBD__2__','ROF','RMSD'
-    # corr_thresh = maximum threshold for correlations between features. Features with higher correlations will be dropped
-    
-    # Set some variables
-    tt_split = 0.3
-    rand_seed = 42
-    
-    # Restrict RBD window 
-    df = restrict_RBD_window(df,rbd_wind)
-    
-    # Drop unwanted features
-    all_feats = ['_x','_y','_z','RBD__2__','ROF','RMSD']
-    featureMap = {}
-    for feat_cat in all_feats:
-        featureMap[feat_cat] = [col for col in df.columns.to_list() if feat_cat in col]
 
-    for f in all_feats:
-        if f not in feat_incl:
-            df = drop_feats(df,f)
-            
-    # Drop non-feature columns
-    non_features = ['frame','frame_num','isopen','Replicant']
-    for f in non_features:
-        if f in df.keys():
-            df = df.drop([f],axis=1)
-    
-    # Remove highly correlated features
-    df = remove_corr_feats(df,corr_thresh)
-    
-    # Perform train/test split & normalize
-    train_X, test_X, train_X_prepared, test_X_prepared, train_labels, test_labels = prep_ML_data(df,tt_split,rand_seed,df.label)
-    
-    # Train model
-    sgd_clf = SGDClassifier(max_iter=1000, tol=1e-3, random_state=42)
-    sgd_clf.fit(train_X_prepared,train_labels)
-    
-    # Get performance on train & test data
-    y_train_pred = sgd_clf.predict(train_X_prepared)
-    y_test_pred = sgd_clf.predict(test_X_prepared)
-    train_prec = precision_score(train_labels, y_train_pred)
-    train_recall = recall_score(train_labels, y_train_pred)
-    test_prec = precision_score(test_labels, y_test_pred)
-    test_recall = recall_score(test_labels, y_test_pred)
-    
-    # Get feature importances
-    dfFeats = pd.DataFrame({'feats':train_X.columns.to_list(),'importance':np.abs(sgd_clf.coef_[0])}).sort_values('importance', ascending=False)
-
-    return train_prec, train_recall, test_prec, test_recall, dfFeats
-
-def train_sgd_model_new(df):
+def train_sgd_model(df):
     '''Train SGD classifier on input data using input features'''
     # df = dataframe 
     # rbd_wind = distance in nm. Only glycans with COM < rbd_wind away from RBD will be included in analysis
@@ -324,14 +241,8 @@ def plot_feature_importances(df_feats):
     fig1.update_layout(template='simple_white')
     return fig1
 
-def trace_single_feat(df,f,title_clr):
+def trace_single_feat(df,f,title_clr,cmap):
     '''Draws line plot for feature f for all replicants in dataframe df'''
-    # Define colors: open = blue & closed = red
-    df_r = df[['Replicant','isopen']].drop_duplicates()
-    cmap = {}; colors = [closed_clr,open_clr]
-    for i in range(len(df_r)):
-        cmap[df_r.iloc[i]['Replicant']] = colors[df_r.iloc[i]['isopen']]
-    
     # Convert feature names to bionames 
     rename_cols = {'Replicant':'Replicant','isopen':'isopen'}
     for c in df.keys().to_list():
@@ -360,9 +271,12 @@ def trace_single_feat(df,f,title_clr):
     
     
     # ------------ Combine w/ Histogram ----------------
-    t1,t2 = hist_single_feat(df,f,title_clr)
+    # Get hist traces
+    t1,t2 = hist_single_feat(df,f,title_clr,cmap)
+    # Add to figure
     fig.append_trace(t1,1,2)
     fig.append_trace(t2,1,2)
+    # Format full figure
     fig.update_layout(
         autosize=True,
         hovermode='closest',
@@ -372,21 +286,16 @@ def trace_single_feat(df,f,title_clr):
         title={'font':{'color':title_clr},
                             'text':'<b>' + glycan_bionames.rename_feat(f) + ' Over a Full Trajectory<b>'}
     )
-    
-    # Format full figure
+    # Format axes
     fig.update_yaxes(showticklabels=False,row=1,col=2)
     fig.update_yaxes(title_text=glycan_bionames.rename_feat(f),row=1,col=1)
     fig.update_xaxes(title_text='Frame',row=1,col=1)
     fig.update_xaxes(title_text='Frequency',row=1,col=2)
     
-    
     return fig
 
-def hist_single_feat(df,f, title_clr):
+def hist_single_feat(df,f, title_clr,cmap):
     '''Draw histogram for feature f'''
-    # Define colors: open = blue & closed = red
-    cmap = {'Open':open_clr,'Closed':closed_clr}
-        
     # Convert feature names to bionames 
     rename_cols = {'Replicant':'Replicant','isopen':'isopen'}
     for c in df.keys().to_list():
@@ -397,6 +306,7 @@ def hist_single_feat(df,f, title_clr):
     labels = ['Closed','Open']
     df['state'] = df.apply(lambda row: labels[int(row['isopen'])], axis=1)
 
+    # Create histogram objects
     fig1 = go.Histogram(y=df[df['state']=='Closed'][f],name='Closed', legendgroup='group1',showlegend=True,marker_color=closed_clr)
     fig2 = go.Histogram(y=df[df['state']=='Open'][f],name='Open', legendgroup='group2',showlegend=True, marker_color=open_clr)
     return fig1,fig2
