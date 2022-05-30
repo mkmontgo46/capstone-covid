@@ -34,18 +34,7 @@ import time
 # Import custom utility functions
 import glycan_bionames
 
-# to make this notebook's output stable across runs
-np.random.seed(42)
-
-# # To plot pretty figures
-# %matplotlib inline
-# import matplotlib as mpl
-# import matplotlib.pyplot as plt
-# mpl.rc('axes', labelsize=14)
-# mpl.rc('xtick', labelsize=12)
-# mpl.rc('ytick', labelsize=12)
-
-# Define custom functions
+# ---------- Define custom functions ---------- 
 def get_label_colors():
     '''Define colors to use for open and closed figures'''
     closed_clr = px.colors.qualitative.Set1[0]
@@ -61,13 +50,6 @@ def get_substruct_cmap():
     for s in range(len(substructs)):
         cmap[substructs[s]] = px.colors.qualitative.G10[indices[s]]
     return cmap
-
-def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
-    path = os.path.join(IMAGES_PATH, fig_id + "." + fig_extension)
-    print("Saving figure", fig_id)
-    if tight_layout:
-        plt.tight_layout()
-    plt.savefig(path, format=fig_extension, dpi=resolution)
     
 def restrict_RBD_window(df,nm):
     '''Function to drop features of dataframe that correspond to glycans which are outside a given RBD neighborhood (in nm)'''
@@ -82,16 +64,6 @@ def restrict_RBD_window(df,nm):
                     flist.append(f)
     df.drop(flist,axis=1,inplace=True)
     return df
-
-def overlapping_hist(open_df,closed_df,feat):
-    '''Plot overlapping histograms for a given feature of all datasets'''
-    open_df[feat].hist(bins=50)
-    closed_df[feat].hist(bins=50)
-    mutant_df[feat].hist(bins=50)
-    plt.legend(['Open','Closed','Mutant (open)'])
-    plt.title(feat)
-    if 'RBD__2__' in feat:
-        plt.xlabel('nm')
         
 def drop_feats(df,flag):
     '''Drops all features in df containing flag'''
@@ -101,33 +73,6 @@ def drop_feats(df,flag):
             flist.append(f)
     df.drop(flist,axis=1,inplace=True)
     return df
-
-def read_n_filter_dfs(fname,num_reps,RBD_wind,val_reps_open,val_reps_closed,label_val,dfs_train=None,dfs_val=None):
-    '''Reads data and filters columns, then places in either train or validation dataframe list'''
-    if dfs_train is None:
-        dfs_train = []
-    if dfs_val is None:
-        dfs_val = []
-        
-    for i in range(1,num_reps+1):
-        df = pd.read_csv(fname+'.csv').assign(label=label_val).iloc[:,1:]
-        # Only use glycans within certain range of the RBD
-        df = restrict_RBD_window(df,RBD_wind)
-        # Drop _x, _y, and _z features
-        df = drop_feats(df,'_x')
-        df = drop_feats(df,'_y')
-        #df = drop_feats(df,'RBD__2__')
-        df = drop_feats(df,'_z')
-        
-        # Withold some replicants for use in a separate validation set
-        if (label_val==1) & (i in val_reps_open):
-            dfs_val.append(df)
-        elif (label_val==0) & (i in val_reps_closed):
-            dfs_val.append(df)
-        else:
-            dfs_train.append(df)
-            
-    return dfs_train, dfs_val
 
 def remove_corr_feats(full_df,corr_thresh= 0.65):
     '''Remove highly correlated features'''
@@ -160,16 +105,7 @@ def curate_feats(df,rbd_wind=4,feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'
     for f in all_feats:
         if f not in feat_incl:
             df=drop_feats(df,f)
-#             df = df.drop(f,axis=1)
             
-#     # Drop non-feature columns
-#     non_features = ['frame','frame_num']
-#     for f in non_features:
-#         if f in df.keys():
-#             df = df.drop([f],axis=1)
-    
-   
-
     return df
 
 def prep_ML_data(clf_df,ts,rs,labelnames):
@@ -198,17 +134,17 @@ def load_data(fnames, is_open):
     openlabels = ['Closed','Open']
     dfs = []
     for f in range(len(fnames)):
+        # Read data
         df = pd.read_csv(fnames[f]).assign(label = is_open[f]).iloc[:,1:]
+        # Assign tracking variables
         df['Replicant'] = '/'.join(fnames[f].split('/')[-3:])
-#         df['Replicant'] = os.path.basename(fnames[f])# basename leaves duplicates (csvs in different datasets have same names)
         df['isopen'] = is_open[f]
-#         df['Replicant'] = openlabels[is_open[f]] +'_'+os.path.basename(fnames[f])
+        # Add to list
         dfs.append(df)
     return pd.concat(dfs,join='inner')
 
-def getfeatureStats(df,rbd_wind=4, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
+def getfeatureStats(df, feat_incl=['RBD__2__','ROF','RMSD','_x','_y','_z'], feat_type='RBD__2__'):
     '''Plot histograms of potential features'''
-    # Drop unwanted features, restrict rbd window and threshold correlated features
     # Create mapping of feature names to columns
     feat_descMap = {'RBD__2__': 'RBD Distances',
                     'ROF' : 'Radius of Gyration',
@@ -223,31 +159,65 @@ def getfeatureStats(df,rbd_wind=4, feat_incl=['_x','_y','_z','RBD__2__','ROF','R
 
     # Select colors to use for plotting. Default is 58 options
     cols = plotly.colors.DEFAULT_PLOTLY_COLORS +  plotly.colors.qualitative.Dark24 + plotly.colors.qualitative.Light24
-    figTraceMLup = {}
-    for k in featureMap:
-        figTraceMLup[k] = make_subplots(1,2, subplot_titles= ['open', 'closed'])
-        #figTraceMLup[k] = go.Figure()
-        for c in featureMap[k]:
-            for l in df.label.unique():
-                cur_mask = df.label == l
-                if l :
-                    shl,i = True,1
-                else :
-                    shl,i = False,0
-                #print(f'l = {l} , i ={i}, {featureMap[k].index(c)} , total_cols = {len(cols)}, {cols[featureMap[k].index(c)]}')
+    
+    k = feat_type; xmins = []; xmaxs=[]
+    fig = make_subplots(1,2, subplot_titles= ['Closed', 'Open'],shared_yaxes=True)
+    for c in featureMap[k]:
+        for l in df.label.unique():
+            cur_mask = df.label == l
+            if l :
+                shl,i = True,1
+            else :
+                shl,i = False,0
+            # Add histogram to figure
+            fig.add_trace(go.Histogram(x=df[cur_mask][c],name=c,showlegend=shl,marker = dict(color = cols[featureMap[k].index(c)])) ,1, i+1)
                 
-                figTraceMLup[k].add_trace(go.Histogram(x=df[cur_mask][c],name=c,showlegend=shl,marker = dict(color = cols[featureMap[k].index(c)])) ,  1, i+1)
-            #figTraceMLup[k].add_trace(go.Histogram(x=train_X[c], y = train_labels, name=c,showlegend=True))
-                
-        figTraceMLup[k].update_layout(
-        title_text= f'Feature Engineered from {feat_descMap[k]}', # title of plot
-        xaxis_title_text='Value', # xaxis label
-        yaxis_title_text='Count', # yaxis label
-#         bargap=0.2, # gap between bars of adjacent location coordinates
-        bargroupgap=0.1 # gap between bars of the same location coordinates
-        )
-    #return {f : px.histogram(df[featureMap[f]].assign(label = df.label ), facet_row= 'label') for f in feat_incl}
-    return figTraceMLup
+        # Sync x axis
+        xmins.append(min(df[c]))
+        xmaxs.append(max(df[c]))
+    
+    # Format graph
+    fig.update_xaxes(title_text=feat_descMap[k],
+                     range=[min(xmins), max(xmaxs)],
+                     row=1,col=1)
+    fig.update_xaxes(title_text=feat_descMap[k],
+                     range=[min(xmins), max(xmaxs)],
+                     row=1,col=2)
+    fig.update_layout(
+        template='plotly_white',
+        title_text = f'Features Engineered from {feat_descMap[k]}', # title of plot
+        yaxis_title_text = 'Count' #yaxis label
+    )
+
+    return fig
+    
+#     figTraceMLup = {}
+#     for k in featureMap:
+#         # Create figure
+#         figTraceMLup[k] = make_subplots(1,2, subplot_titles= ['Open', 'Closed'],shared_xaxes=True)
+#         for c in featureMap[k]:
+#             for l in df.label.unique():
+#                 cur_mask = df.label == l
+#                 if l :
+#                     shl,i = True,1
+#                 else :
+#                     shl,i = False,0
+#                 # Add histogram to figure
+#                 figTraceMLup[k].add_trace(go.Histogram(x=df[cur_mask][c],name=c,showlegend=shl,marker = dict(color = cols[featureMap[k].index(c)])) ,1, i+1)
+#         figTraceMLup[k].update_xaxes(title_text=feat_descMap[k],row=1,col=1)
+#         figTraceMLup[k].update_xaxes(title_text=feat_descMap[k],row=1,col=2)
+        
+#         # Format
+#         figTraceMLup[k].update_layout(
+#             template='plotly_white',
+#             title_text= f'Features Engineered from {feat_descMap[k]}', # title of plot
+# #             xaxis_title_text='Value', # xaxis label
+#             yaxis_title_text='Count', # yaxis label
+#     #         bargap=0.01, # gap between bars of adjacent location coordinates
+#     #         bargroupgap=0.1 # gap between bars of the same location coordinates
+#             )
+        
+#     return figTraceMLup
         
     
     
@@ -397,6 +367,7 @@ def trace_single_feat(df,f,title_clr):
         autosize=True,
         hovermode='closest',
         bargap=0,
+        barmode='stack',
         template='plotly_white',
         title={'font':{'color':title_clr},
                             'text':'<b>' + glycan_bionames.rename_feat(f) + ' Over a Full Trajectory<b>'}
