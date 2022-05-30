@@ -115,7 +115,7 @@ app.layout = html.Div(
                           min=0,
                           max=40,
                           step=1,
-                          value=8),
+                          value=4),
                 html.Label(' (nm)'),
             ]),
             html.Div(children=[
@@ -319,15 +319,6 @@ def feature_Engineering(traj_sel,Iso,feat_sel,rbd_wind,corr_thresh,n_go):
         print('Feature Histograms Plotted')
         return [feat_stats_fig_dict[feat_sel[0]], True, False]
     else:
-        if len(traj_sel) == 0:
-            update = 'Please select at least 2 feature sets'
-        elif len(traj_sel) == 1:
-            update = 'Almost there! Please select 1 more feature set'
-        elif len(traj_sel) > 1:
-            update = "Ready to train the model! Feel free to adjust the model parameters, then hit the green button when you're ready!"
-        else:
-            update = "I'm confused..."
-        #return [{}, {}, {}, update]
         return [blank_fig(), True, True]
 
 

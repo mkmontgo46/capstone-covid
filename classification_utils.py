@@ -74,11 +74,13 @@ def restrict_RBD_window(df,nm):
     #Get list of glycans
     glycans = list(np.unique([x.replace('RBD__2__','') for x in df.keys().to_list() if 'RBD__2__GLY' in x]))
     
+    flist = []
     for g in glycans:
         if df['RBD__2__' + g].mean() > nm:
             for f in ['RBD__2__'+g,g+':ROF',g+':RMSD',g+'_x',g+'_y',g+'_z']:
                 if f in df.keys().to_list():
-                    df.drop([f],axis=1,inplace=True)    
+                    flist.append(f)
+    df.drop(flist,axis=1,inplace=True)
     return df
 
 def overlapping_hist(open_df,closed_df,feat):
@@ -93,9 +95,11 @@ def overlapping_hist(open_df,closed_df,feat):
         
 def drop_feats(df,flag):
     '''Drops all features in df containing flag'''
+    flist = []
     for f in df.keys().to_list():
         if flag in f:
-            df.drop(f,axis=1,inplace=True)
+            flist.append(f)
+    df.drop(flist,axis=1,inplace=True)
     return df
 
 def read_n_filter_dfs(fname,num_reps,RBD_wind,val_reps_open,val_reps_closed,label_val,dfs_train=None,dfs_val=None):
@@ -143,7 +147,7 @@ def gen_pipeline():
         ])
     return num_pipeline
 
-def curate_feats(df,rbd_wind=8,feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
+def curate_feats(df,rbd_wind=4,feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
     '''Restrict rbd window, drop unwanted features, and threshold correlation bw features'''
     # Limit RBD_window
     df = restrict_RBD_window(df,rbd_wind)
@@ -202,7 +206,7 @@ def load_data(fnames, is_open):
         dfs.append(df)
     return pd.concat(dfs,join='inner')
 
-def getfeatureStats(df,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
+def getfeatureStats(df,rbd_wind=4, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
     '''Plot histograms of potential features'''
     # Drop unwanted features, restrict rbd window and threshold correlated features
     # Create mapping of feature names to columns
@@ -248,7 +252,7 @@ def getfeatureStats(df,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','R
     
     
     
-def train_sgd_model(df, rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
+def train_sgd_model(df, rbd_wind=4, feat_incl=['_x','_y','_z','RBD__2__','ROF','RMSD'], corr_thresh=0.5):
     '''Train SGD classifier on input data using input features'''
     # df = dataframe 
     # rbd_wind = distance in nm. Only glycans with COM < rbd_wind away from RBD will be included in analysis
