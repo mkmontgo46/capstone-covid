@@ -354,11 +354,11 @@ def trace_single_feat(df,f,title_clr):
     # Convert feature names to bionames 
     rename_cols = {'Replicant':'Replicant','isopen':'isopen'}
     for c in df.keys().to_list():
-        rename_cols[c] = glycan_bionames.get_elem(c,'feat')
+        rename_cols[c] = glycan_bionames.rename_feat(glycan_bionames.get_elem(c,'feat'))
     df = df.rename(columns=rename_cols)
         
     # Create new dataframe with each replicant having different trace of feature f
-    df['frame'] = df.apply(lambda row: row['frame'].replace('frame_',''), axis=1)
+    df['frame'] = df.apply(lambda row: int(row['frame'].replace('frame_','')), axis=1)
     df= df.set_index('frame')
     df1 = df.loc[df['isopen']==0]
     df2 = df.loc[df['isopen']==1]

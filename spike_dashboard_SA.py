@@ -352,14 +352,29 @@ def train_Spike_classifier_new(n_go):
     
     
 @app.callback([Output('feat_trace','figure')],
-              [Input('trace_go','n_clicks')],
+              [Input('trace_go','n_clicks'),
+               Input('feat_imp','clickData')],
               prevent_initial_call=True)
-def plot_feature_traces(n_go):
+def plot_feature_traces(n_go,clickData):
     '''Plot trace of all replicants for top feature'''
     cmap = {'Monomer A':'royalblue','Monomer B':'indianred','Monomer C':'forestgreen','Core':'orange','RBD':'mediumpurple'}
+    
+    # Load data
     df = pd.read_csv('./current_tmp_df.csv')
     df_feat = pd.read_csv('./current_tmp_topfeats.csv')
-    feat_trace = clu.trace_single_feat(df,glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'feat'),cmap[glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'chain')])
+    
+    # Determine feature to be plotted
+    ctx = callback_context
+    buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
+    if buttonID == 'feat_imp':
+        feat = clickData['points'][0]['x']
+        feat_color = cmap[feat.split('at ')[-1]]
+    else:
+        feat = glycan_bionames.rename_feat(glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'feat'))
+        feat_color = cmap[glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'chain')]
+    
+    # Plot
+    feat_trace = clu.trace_single_feat(df,feat,feat_color)
     
     return [feat_trace]
     
