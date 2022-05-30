@@ -33,6 +33,10 @@ feat_opts = [{'label':'RBD Distances','value':'RBD__2__'},
              {'label':'z location','value':'_z'}]
 feat_vals = ['RBD__2__','ROF','RMSD','_x','_y','_z']
 
+# Define colors to use
+closed_clr, open_clr = clu.get_label_colors()
+cmap=clu.get_substruct_cmap()
+
 def blank_fig():
     fig = go.Figure(go.Scatter(x=[], y = []))
     fig.update_layout(template = None)
@@ -329,7 +333,6 @@ def train_Spike_classifier_new(n_go):
     buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
     if buttonID=='train_go' and n_go > 0 :
         
-        print('HERE-NEW')
         # Train Model
         global_state_df  = pd.read_csv('./current_tmp_df.csv')
         global_state_df.drop(['Unnamed: 0'],inplace=True,axis=1)
@@ -357,7 +360,6 @@ def train_Spike_classifier_new(n_go):
               prevent_initial_call=True)
 def plot_feature_traces(n_go,clickData):
     '''Plot trace of all replicants for top feature'''
-    cmap = {'Monomer A':'royalblue','Monomer B':'indianred','Monomer C':'forestgreen','Core':'orange','RBD':'mediumpurple'}
     
     # Load data
     df = pd.read_csv('./current_tmp_df.csv')
@@ -405,8 +407,8 @@ def scatterplot_trajectories(traj_sel,n_go):
         atom_id_closed = mdu.parse_traj(traj_closed)
 
         # Create figures
-        spike1_fig = mdu.viz_traj(traj_closed,atom_id_closed, df_feat,'Closed Spike','red')
-        spike2_fig = mdu.viz_traj(traj_open,atom_id_open, df_feat,'Open Spike','blue')
+        spike1_fig = mdu.viz_traj(traj_closed,atom_id_closed, df_feat,'Closed Spike',closed_clr)
+        spike2_fig = mdu.viz_traj(traj_open,atom_id_open, df_feat,'Open Spike',open_clr)
         
         return [spike1_fig, spike2_fig]
     else:

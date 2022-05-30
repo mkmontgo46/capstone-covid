@@ -46,6 +46,22 @@ np.random.seed(42)
 # mpl.rc('ytick', labelsize=12)
 
 # Define custom functions
+def get_label_colors():
+    '''Define colors to use for open and closed figures'''
+    closed_clr = px.colors.qualitative.Set1[0]
+    open_clr = px.colors.qualitative.Set1[1]
+    return closed_clr, open_clr
+closed_clr, open_clr = get_label_colors()
+
+def get_substruct_cmap():
+    '''Create colormap for encoding various substructures of features'''
+    substructs = ['Monomer A','Monomer B','Monomer C','Core','RBD']
+    indices = [3,4,5,6,7]
+    cmap={}
+    for s in range(len(substructs)):
+        cmap[substructs[s]] = px.colors.qualitative.G10[indices[s]]
+    return cmap
+
 def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
     path = os.path.join(IMAGES_PATH, fig_id + "." + fig_extension)
     print("Saving figure", fig_id)
@@ -201,15 +217,8 @@ def getfeatureStats(df,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','R
     for f in feat_incl:
         featureMap[f] = [col for col in df.columns.to_list() if f in col]
 
-    #print('HERE')
-    #print(df.columns.to_list())
-    #for f in feat_incl :
-    #    print(f)
-        #print(df.loc[:,featureMap[f][0]])
-
     # Select colors to use for plotting. Default is 58 options
     cols = plotly.colors.DEFAULT_PLOTLY_COLORS +  plotly.colors.qualitative.Dark24 + plotly.colors.qualitative.Light24
-    print(len(cols))
     figTraceMLup = {}
     for k in featureMap:
         figTraceMLup[k] = make_subplots(1,2, subplot_titles= ['open', 'closed'])
@@ -230,7 +239,7 @@ def getfeatureStats(df,rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','R
         title_text= f'Feature Engineered from {feat_descMap[k]}', # title of plot
         xaxis_title_text='Value', # xaxis label
         yaxis_title_text='Count', # yaxis label
-        bargap=0.2, # gap between bars of adjacent location coordinates
+#         bargap=0.2, # gap between bars of adjacent location coordinates
         bargroupgap=0.1 # gap between bars of the same location coordinates
         )
     #return {f : px.histogram(df[featureMap[f]].assign(label = df.label ), facet_row= 'label') for f in feat_incl}
@@ -258,8 +267,6 @@ def train_sgd_model(df, rbd_wind=8, feat_incl=['_x','_y','_z','RBD__2__','ROF','
     featureMap = {}
     for feat_cat in all_feats:
         featureMap[feat_cat] = [col for col in df.columns.to_list() if feat_cat in col]
-
-    #print(featureMap)
 
     for f in all_feats:
         if f not in feat_incl:
@@ -337,8 +344,8 @@ def plot_feature_importances(df_feats):
     x_vals = [glycan_bionames.rename_feat(glycan_bionames.get_elem(i,'feat')) for i in df_feats['feats'].to_list()]
     y_vals = df_feats['importance'].to_list() 
     col_vals = [glycan_bionames.get_elem(i,'chain') for i in df_feats['feats'].to_list()]
-    cmap = {'Monomer A':'royalblue','Monomer B':'indianred','Monomer C':'forestgreen','Core':'orange','RBD':'mediumpurple'}
-
+    cmap = get_substruct_cmap()
+        
     fig1 = px.bar(x=x_vals,y=y_vals,color=col_vals,title='Feature Importance',color_discrete_map=cmap, labels={'x':'Feature','y':'Importance','color':'Substructure'}).update_xaxes(categoryorder='total descending')
     fig1.update_layout(template='simple_white')
     return fig1
@@ -347,7 +354,7 @@ def trace_single_feat(df,f,title_clr):
     '''Draws line plot for feature f for all replicants in dataframe df'''
     # Define colors: open = blue & closed = red
     df_r = df[['Replicant','isopen']].drop_duplicates()
-    cmap = {}; colors = ['red','blue']
+    cmap = {}; colors = [closed_clr,open_clr]
     for i in range(len(df_r)):
         cmap[df_r.iloc[i]['Replicant']] = colors[df_r.iloc[i]['isopen']]
     
@@ -369,19 +376,13 @@ def trace_single_feat(df,f,title_clr):
     for r in df2['Replicant'].unique():
        df_f2[r] = df2.loc[df2['Replicant']==r][f]
     
-    print(df_f1.head())
-    
     # Plot
-#     fig = px.line(df_f,title=f + ' Over a Full Trajectory',color_discrete_map=cmap)
-#     fig.update_layout(template='simple_white',
-#                      title={'font':{'color':title_clr}},
-#                      showlegend=False)
     fig = go.Figure()
     fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.7, 0.3])
     for c in df_f1.columns:
-        fig.append_trace(go.Scatter(x=df_f1.index,y=df_f1[c],mode='lines', name='Closed', legendgroup='group1',showlegend=False,marker_color='red'),1,1)
+        fig.append_trace(go.Scatter(x=df_f1.index,y=df_f1[c],mode='lines', name='Closed', legendgroup='group1',showlegend=False,marker_color=closed_clr),1,1)
     for c in df_f2.columns:
-        fig.append_trace(go.Scatter(x=df_f2.index,y=df_f2[c], mode='lines',name='Open',legendgroup='group2',showlegend=False,marker_color='blue'),1,1)
+        fig.append_trace(go.Scatter(x=df_f2.index,y=df_f2[c], mode='lines',name='Open',legendgroup='group2',showlegend=False,marker_color=open_clr),1,1)
     
     
     # ------------ Combine w/ Histogram ----------------
@@ -391,30 +392,12 @@ def trace_single_feat(df,f,title_clr):
     fig.update_layout(
         autosize=True,
         hovermode='closest',
+        bargap=0,
         template='plotly_white',
         title={'font':{'color':title_clr},
-                            'text':glycan_bionames.rename_feat(f) + ' Over a Full Trajectory'}
+                            'text':'<b>' + glycan_bionames.rename_feat(f) + ' Over a Full Trajectory<b>'}
     )
     
-    # For as many traces that exist per Express figure, get the traces from each plot and store them in an array.
-    # This is essentially breaking down the Express fig into it's traces
-#     line_traces = []
-#     hist_traces = []
-#     for trace in range(len(fig["data"])):
-#         line_traces.append(fig["data"][trace])
-#     for trace in range(len(fig2["data"])):
-#         hist_traces.append(fig2["data"][trace])
-
-#     #Create a 1x2 subplot
-#     full_figure = sp.make_subplots(rows=1, cols=2, column_widths = [0.7, 0.3], shared_yaxes = True) 
-
-#     # Get the Express fig broken down as traces and add the traces to the proper plot within in the subplot
-#     for trace in line_traces:
-#         full_figure.append_trace(trace, row=1, col=1)
-#     full_figure.for_each_trace(lambda t: t.update(showlegend=False))
-#     for trace in hist_traces:
-#         full_figure.append_trace(trace, row=1, col=2)
-
     # Format full figure
     fig.update_yaxes(showticklabels=False,row=1,col=2)
     fig.update_yaxes(title_text=glycan_bionames.rename_feat(f),row=1,col=1)
@@ -427,7 +410,7 @@ def trace_single_feat(df,f,title_clr):
 def hist_single_feat(df,f, title_clr):
     '''Draw histogram for feature f'''
     # Define colors: open = blue & closed = red
-    cmap = {'Open':'blue','Closed':'red'}
+    cmap = {'Open':open_clr,'Closed':closed_clr}
         
     # Convert feature names to bionames 
     rename_cols = {'Replicant':'Replicant','isopen':'isopen'}
@@ -438,10 +421,7 @@ def hist_single_feat(df,f, title_clr):
     # Relabel isopen
     labels = ['Closed','Open']
     df['state'] = df.apply(lambda row: labels[int(row['isopen'])], axis=1)
-        
-#     fig = px.histogram(df,y=f,color = 'state',title=f,color_discrete_map = cmap,opacity=1)
-#     fig.update_layout(template='simple_white',
-#                      title={'font':{'color':title_clr}})
-    fig1 = go.Histogram(y=df[df['state']=='Closed'][f],name='Closed', legendgroup='group1',showlegend=True,marker_color='red')
-    fig2 = go.Histogram(y=df[df['state']=='Open'][f],name='Open', legendgroup='group2',showlegend=True, marker_color='blue')
+
+    fig1 = go.Histogram(y=df[df['state']=='Closed'][f],name='Closed', legendgroup='group1',showlegend=True,marker_color=closed_clr)
+    fig2 = go.Histogram(y=df[df['state']=='Open'][f],name='Open', legendgroup='group2',showlegend=True, marker_color=open_clr)
     return fig1,fig2
