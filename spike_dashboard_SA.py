@@ -394,12 +394,21 @@ def plot_feature_traces(clickData):
 @app.callback([Output('spike1','figure'),
                Output('spike2','figure')],
               [Input('featureset_select','value'),
-               Input('scatter_go','n_clicks')],
+               Input('scatter_go','n_clicks'),
+               Input('spike1','figure'),
+               Input('spike2','figure'),
+               Input('spike1','relayoutData'),
+               Input('spike2','relayoutData')],
               prevent_initial_call=True)
-def scatterplot_trajectories(traj_sel,n_go):
+def scatterplot_trajectories(traj_sel,n_go,spike1_fig,spike2_fig,scene1,scene2):
     '''Load trajectories and plot in 3D'''
+    if n_go is None or n_go == 0:
+        return [spike1_fig, spike2_fig]
+    
     ctx = callback_context
     buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
+    print(ctx.triggered[0])
+       
     if buttonID == 'scatter_go':
         # Load important features
         df_feat = pd.read_csv('./current_tmp_topfeats.csv')
@@ -421,8 +430,17 @@ def scatterplot_trajectories(traj_sel,n_go):
         spike2_fig = mdu.viz_traj(traj_open,atom_id_open, df_feat,'Open Spike',open_clr)
         
         return [spike1_fig, spike2_fig]
-    else:
-        return [blank_fig(), blank_fig()]
+    elif buttonID == 'spike1':
+        cam1 = scene1['scene.camera']
+        spike1_fig['layout']['scene']['camera'] = cam1
+        spike2_fig['layout']['scene']['camera'] = cam1
+        
+    elif buttonID == 'spike2':
+        cam2 = scene2['scene.camera']
+        spike1_fig['layout']['scene']['camera'] = cam2
+        spike2_fig['layout']['scene']['camera'] = cam2
+
+    return [spike1_fig, spike2_fig]
 
 # Do everything callback
 """
