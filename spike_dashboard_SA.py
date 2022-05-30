@@ -146,7 +146,7 @@ app.layout = html.Div(
                 html.Button('Trigger Feature Engineering',
                             id='feature_eng',
                             n_clicks=0,
-                            disabled=False,
+                            disabled=True,
                             
                             ),
                 # Data loading indicator
@@ -162,8 +162,7 @@ app.layout = html.Div(
                 html.Button('Train Model',
                             id='train_go',
                             n_clicks=0,
-                            disabled=False, 
-                            
+                            disabled=True, 
                            ),
                 # Model training indicator
                 dcc.Loading(
@@ -196,7 +195,8 @@ app.layout = html.Div(
         html.Div(children=[
             html.Br(),
             html.Button('Plot top feature over time',
-                        id='trace_go'),
+                        id='trace_go',
+                        disabled=True),
             dcc.Loading(
                 id='loading_trace',
                 type='default',
@@ -213,7 +213,8 @@ app.layout = html.Div(
             html.Br(),
             # Plot Scatter Button
             html.Button('Show Features in 3D',
-                        id='scatter_go'),
+                        id='scatter_go',
+                        disabled=True),
             # Scatter plotting indicator
             dcc.Loading(
                 id='loading-scatter',
@@ -242,10 +243,23 @@ app.layout = html.Div(
 )
 
 # -------------- Callbacks -----------------
+# Enable Feature Engineering Callback
+@app.callback(Output('feature_eng','disabled'),
+              [Input('featureset_select','value')],
+              prevent_initial_call=True)
+def enable_feature_engineering(traj_sel):
+    '''Enable button to trigger feature engineering'''
+    # Confirm at least 2 feature sets selected
+    if traj_sel is None or len(traj_sel) < 2:
+        return True
+    else:
+        return False
+        
 # Trigger Feature Engineering Callback
 @app.callback(
               [
-               Output('feature_ext','figure'),   
+               Output('feature_ext','figure'),  
+               Output('train_go','disabled')
                #Output('global_state_df','data')
               ],
                [
@@ -267,7 +281,7 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
         if traj_sel is None or len(traj_sel) < 2:
             update = 'Please select at least 2 feature sets!'
             
-            return [blank_fig()]
+            return [blank_fig(), True]
         
         # Get list of csv files containing features
         print('Loading feature sets')
@@ -282,7 +296,7 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
         if len(np.unique(is_open)) < 2:
             update = 'Please select both an open and a closed dataset!'
             
-            return [blank_fig()]
+            return [blank_fig(), True]
         
         # Load data
         global_state_df = clu.load_data(feat_files,is_open)
@@ -291,7 +305,7 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
         print('Data loaded')
         feat_stats_fig_dict = clu.getfeatureStats(pd.DataFrame(global_state_df),feat_incl=feat_sel)
         print('Feature Histograms Plotted')
-        return [feat_stats_fig_dict[feat_sel[0]]]
+        return [feat_stats_fig_dict[feat_sel[0]], False]
     else:
         if len(traj_sel) == 0:
             update = 'Please select at least 2 feature sets'
@@ -302,7 +316,7 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
         else:
             update = "I'm confused..."
         #return [{}, {}, {}, update]
-        return [blank_fig()]
+        return [blank_fig(), True]
 
 
 
@@ -311,18 +325,10 @@ def feature_Engineering(traj_sel,feat_sel,rbd_wind,corr_thresh,n_go):
               [
                Output('feat_imp','figure'),
                Output('performance_label','children'),
-              #Output('feat_trace', 'figure'),
-              # Output('df_feat','data'),
-              # Output('update_window','children')
+               Output('trace_go','disabled')
               ],
                [
-               #Input('featureset_select','value'),
-               #Input('feature_select','value'),
-               #Input('rbd_wind','value'),
-               #Input('corr_thresh','value'),
-               #Input('global_state_df','data'),
-               Input('train_go','n_clicks'),
-                        
+               Input('train_go','n_clicks'),   
               ],
                prevent_initial_call = True,
               )
@@ -348,13 +354,14 @@ def train_Spike_classifier_new(n_go):
         df_feat.to_csv('./current_tmp_topfeats.csv')
         feat_imp_fig = clu.plot_feature_importances(df_feat)
         #return [feat_imp_fig, testResults, df_feat, update]
-        return [feat_imp_fig,testResults]
+        return [feat_imp_fig,testResults, False]
     else:
              
-        return [blank_fig(), {}]
+        return [blank_fig(), {}, True]
     
     
-@app.callback([Output('feat_trace','figure')],
+@app.callback([Output('feat_trace','figure'),
+               Output('scatter_go','disabled')],
               [Input('trace_go','n_clicks'),
                Input('feat_imp','clickData')],
               prevent_initial_call=True)
@@ -378,7 +385,7 @@ def plot_feature_traces(n_go,clickData):
     # Plot
     feat_trace = clu.trace_single_feat(df,feat,feat_color)
     
-    return [feat_trace]
+    return [feat_trace, False]
     
 # Show Features in 3D Callback
 @app.callback([Output('spike1','figure'),
