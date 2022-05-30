@@ -148,7 +148,7 @@ app.layout = html.Div(
                             id='feature_eng',
                             n_clicks=0,
                             disabled=True,
-                            
+                            style = {'height':'35px'}
                             ),
                 # Data loading indicator
                 dcc.Loading(
@@ -173,6 +173,7 @@ app.layout = html.Div(
                             id='train_go',
                             n_clicks=0,
                             disabled=True, 
+                            style = {'height':'35px'}
                            ),
                 # Model training indicator
                 dcc.Loading(
@@ -204,9 +205,6 @@ app.layout = html.Div(
         # Plot top feature over trajectory
         html.Div(children=[
             html.Br(),
-            html.Button('Plot top feature over time',
-                        id='trace_go',
-                        disabled=True),
             dcc.Loading(
                 id='loading_trace',
                 type='default',
@@ -224,7 +222,8 @@ app.layout = html.Div(
             # Plot Scatter Button
             html.Button('Show Features in 3D',
                         id='scatter_go',
-                        disabled=True),
+                        disabled=True,
+                        style = {'height':'35px'}),
             # Scatter plotting indicator
             dcc.Loading(
                 id='loading-scatter',
@@ -328,7 +327,7 @@ def feature_Engineering(traj_sel,Iso,feat_sel,rbd_wind,corr_thresh,n_go):
               [
                Output('feat_imp','figure'),
                Output('performance_label','children'),
-               Output('trace_go','disabled')
+               Output('feat_imp','clickData')
               ],
                [
                Input('train_go','n_clicks'),   
@@ -357,18 +356,20 @@ def train_Spike_classifier_new(n_go):
         df_feat.to_csv('./current_tmp_topfeats.csv')
         feat_imp_fig = clu.plot_feature_importances(df_feat)
         #return [feat_imp_fig, testResults, df_feat, update]
-        return [feat_imp_fig,testResults, False]
+        
+        clickData = {'points':[{'x':glycan_bionames.rename_feat(glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'feat'))}]}
+        
+        return [feat_imp_fig,testResults, clickData]
     else:
              
-        return [blank_fig(), {}, True]
+        return [blank_fig(), {}, {}]
     
-    
+# Feature traces callback
 @app.callback([Output('feat_trace','figure'),
                Output('scatter_go','disabled')],
-              [Input('trace_go','n_clicks'),
-               Input('feat_imp','clickData')],
+              [Input('feat_imp','clickData')],
               prevent_initial_call=True)
-def plot_feature_traces(n_go,clickData):
+def plot_feature_traces(clickData):
     '''Plot trace of all replicants for top feature'''
     
     # Load data
@@ -378,17 +379,16 @@ def plot_feature_traces(n_go,clickData):
     # Determine feature to be plotted
     ctx = callback_context
     buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
-    if buttonID == 'feat_imp':
+    if clickData:
         feat = clickData['points'][0]['x']
         feat_color = cmap[feat.split('at ')[-1]]
+    
+        # Plot
+        feat_trace = clu.trace_single_feat(df,feat,feat_color)
+    
+        return [feat_trace, False]
     else:
-        feat = glycan_bionames.rename_feat(glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'feat'))
-        feat_color = cmap[glycan_bionames.get_elem(df_feat.iloc[0]['feats'],'chain')]
-    
-    # Plot
-    feat_trace = clu.trace_single_feat(df,feat,feat_color)
-    
-    return [feat_trace, False]
+        return [blank_fig(), True]
     
 # Show Features in 3D Callback
 @app.callback([Output('spike1','figure'),
