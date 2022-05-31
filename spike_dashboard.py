@@ -74,7 +74,7 @@ app.layout = html.Div(
         html.Br(),        
         html.Div(children=[
             # Drop-down list for user to select feature sets
-            html.H4('Select Profiled Data-sets to analyze:'),
+            html.H4('Select Profiled Datasets to Analyze:'),
             #html.Br(),
             dcc.Dropdown(id='featureset_select',
                          options= traj_dirs,
@@ -365,7 +365,7 @@ def train_Spike_classifier_new(n_go):
         df_feat = df_feat[:10]
         
         # Save data for use in other callbacks
-        df.to_csv('./current_tmp_df.csv')
+        df.to_csv('./current_tmp_filt_df.csv')
         df_feat.to_csv('./current_tmp_topfeats.csv')
         
         # Generate plot of feature importances
@@ -388,7 +388,7 @@ def plot_feature_traces(clickData):
     '''Plot trace of all replicants for top feature'''
     
     # Load data
-    df = pd.read_csv('./current_tmp_df.csv')
+    df = pd.read_csv('./current_tmp_filt_df.csv')
     df_feat = pd.read_csv('./current_tmp_topfeats.csv')
     
     # Determine feature to be plotted

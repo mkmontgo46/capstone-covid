@@ -82,7 +82,7 @@ def parse_traj(traj):
 
 def assign_marker_size(atom_type):
     '''Assign marker size and symbol for an atom of input type'''
-    bkg = ['backbone','sidechain','GLY','RBD_CA','CH_CA']
+    bkg = ['backbone','sidechain','GLY']
     if atom_type in bkg:
         return 1
     else:
@@ -133,7 +133,7 @@ def viz_traj(traj,atom_id_LUP, dfFeats,title_str,title_clr):
     
     # Display most important features
     fig1 = px.scatter_3d(coord_df, title=title_str, x='x', y='y', z='z',
-              color='Chain',width=800,height=800,opacity=.9, template='simple_white',
+              color='Chain',width=800,height=800,opacity=1, template='simple_white',
                          size = 'marker_size', color_discrete_map = cmap,
                 )
     
