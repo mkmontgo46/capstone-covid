@@ -133,9 +133,13 @@ def viz_traj(traj,atom_id_LUP, dfFeats,title_str,title_clr):
     
     # Display most important features
     fig1 = px.scatter_3d(coord_df, title=title_str, x='x', y='y', z='z',
-              color='Substructure',width=800,height=800,opacity=0.5, template='simple_white',
-                         size = 'marker_size', color_discrete_map = cmap
+              color='Substructure',width=800,height=800,opacity=1, template='simple_white',
+                         size = 'marker_size', color_discrete_map = cmap,
                 )
+    
+    # Remove white border around markers
+    fig1.update_traces(line=dict(width=0))
+    
     # Remove tick labels on all 3 axes
     fig1.update_layout(scene=dict(xaxis=dict(showticklabels=False),
                              yaxis = dict(showticklabels=False),

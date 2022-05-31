@@ -87,7 +87,7 @@ app.layout = html.Div(
         html.Div(children=[
             html.Div(children=[
                 # Drop-down list for features to include
-                html.Label('Select attributes for feature engineering:'),
+                html.Label('Select Features to Use:'),
                 html.Br(),
                 dcc.Dropdown(id='feature_select',
                              options=feat_opts,
@@ -99,7 +99,7 @@ app.layout = html.Div(
             ),
             html.Div(children=[
                 # Input option for max distance between glycans & rbd
-                html.Label('Glycans to RBD lookout:'),
+                html.Label('Set Max RBD Neighborhood:'),
                 html.Br(),
                 dcc.Input(id='rbd_wind',
                           type='number',
@@ -111,7 +111,7 @@ app.layout = html.Div(
             ]),
             html.Div(children=[
                 # Input option for max correlation between two features
-                html.Label('Feature correlation threshold:'),
+                html.Label('Set Max Feature Correlation:'),
                 html.Br(),
                 dcc.Input(id='corr_thresh',
                           type='number',
@@ -132,7 +132,7 @@ app.layout = html.Div(
             html.Div(children=[
                 # Feature Engineering
                 html.Br(),
-                html.Button('Trigger Feature Engineering',
+                html.Button('Preview Model Features',
                             id='feature_eng',
                             n_clicks=0,
                             disabled=True,
