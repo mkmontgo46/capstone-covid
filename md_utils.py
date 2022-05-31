@@ -133,7 +133,7 @@ def viz_traj(traj,atom_id_LUP, dfFeats,title_str,title_clr):
     
     # Display most important features
     fig1 = px.scatter_3d(coord_df, title=title_str, x='x', y='y', z='z',
-              color='Substructure',width=800,height=800,opacity=1, template='simple_white',
+              color='Substructure',width=800,height=800,opacity=.9, template='simple_white',
                          size = 'marker_size', color_discrete_map = cmap,
                 )
     
