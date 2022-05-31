@@ -161,7 +161,6 @@ app.layout = html.Div(
                 dbc.Popover(
                     [
                         dbc.PopoverHeader("Select at least 1 Open and 1 Closed DataSet"),
-                        
                     ],
                     id="popover",
                     is_open=False,
@@ -280,38 +279,32 @@ def update_view_list(feats):
               )
 def feature_Engineering(traj_sel,Iso,feat_sel,rbd_wind,corr_thresh,n_go,view_feat):
     '''Curate features and plot histograms'''
-    update = 'Return'
+    # Confirm at least 2 feature sets selected
+    if traj_sel is None or len(traj_sel) < 2:
+        return [blank_fig(), True, True, view_feat]
+    
+    # Get list of files containing features
+    feat_files = []
+    for t in traj_sel:
+        feat_files.extend(glob.glob(os.path.join(t,'results','*FinalExtractedFeature*.csv')))
+
+        # For now, assume if dataset not labeled as "closed", is open
+        is_open = ['closed' not in d for d in feat_files]
+        
+    # Confirm both open & closed data present
+    if len(np.unique(is_open)) < 2:
+        return [blank_fig(), True, True, view_feat]    
     ctx = callback_context
     buttonID = ctx.triggered[0]['prop_id'].split('.')[0]
     
     
     if buttonID == 'feature_eng':
-        # Confirm at least 2 feature sets selected
-        if traj_sel is None or len(traj_sel) < 2:
-            update = 'Please select at least 2 feature sets!'
-            
-            return [blank_fig(), True, True, view_feat]
-        
-            # Get feature to plot
+        # Get feature to plot
         if view_feat is None:
             view_feat = feat_sel[0]
         
-        # Get list of csv files containing features
-        print('Loading feature sets')
-        feat_files = []
-        for t in traj_sel:
-            feat_files.extend(glob.glob(os.path.join(t,'results','*FinalExtractedFeature*.csv')))
-
-        # For now, assume if dataset not labeled as "closed", is open
-        is_open = ['closed' not in d for d in feat_files]
-        
-        # Confirm both open & closed data present
-        if len(np.unique(is_open)) < 2:
-            update = 'Please select both an open and a closed dataset!'
-            
-            return [blank_fig(), True, True, view_feat]
-        
         # Load data
+        print('Loading feature sets')
         global_state_df = clu.load_data(feat_files,is_open)
         global_state_df = clu.curate_feats(global_state_df,rbd_wind=rbd_wind,feat_incl=feat_sel,corr_thresh=corr_thresh)
         global_state_df.to_csv('./current_tmp_df.csv')
@@ -321,7 +314,7 @@ def feature_Engineering(traj_sel,Iso,feat_sel,rbd_wind,corr_thresh,n_go,view_fea
         feat_stats_fig = clu.getfeatureStats(global_state_df,feat_incl=feat_sel,feat_type=view_feat)
         print('Feature Histograms Plotted')
         
-        return [feat_stats_fig, True, False, view_feat]
+        return [feat_stats_fig, False, False, view_feat]
 #         return [feat_stats_fig_dict[feat_sel[0]], True, False]
     elif buttonID == 'view_feat':
         # Get feature to plot
@@ -333,9 +326,9 @@ def feature_Engineering(traj_sel,Iso,feat_sel,rbd_wind,corr_thresh,n_go,view_fea
         global_state_df.drop(['Unnamed: 0'],inplace=True,axis=1)
         feat_stats_fig = clu.getfeatureStats(global_state_df,feat_incl=feat_sel,feat_type=view_feat)
         print('Feature Histograms Plotted')
-        return [feat_stats_fig, True, False, view_feat]
+        return [feat_stats_fig, False, False, view_feat]
     else:
-        return [blank_fig(), True, True, view_feat]
+        return [blank_fig(), False, True, view_feat]
 
 
 # Train Model Callback
