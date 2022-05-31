@@ -113,14 +113,14 @@ def viz_traj(traj,atom_id_LUP, dfFeats,title_str,title_clr):
     coord_df = gen_xyz_Table_4_LUP(LUP=atom_id_LUP,traj=traj, keyNames =keyNames)
     
     # Rename features to use bionames
-    coord_df['Substructure'] = coord_df.apply(lambda row: bionames[row['type']],axis=1)
+    coord_df['Chain'] = coord_df.apply(lambda row: bionames[row['type']],axis=1)
     
     # Add marker size info
     coord_df['marker_size'] = coord_df.apply(lambda row: assign_marker_size(row['type']),axis=1)
     
     # Create custom colormap
     cmap = {}; bkg = ['Backbone','Sidechain','Glycans']; ct = 2
-    for s in coord_df['Substructure'].unique():
+    for s in coord_df['Chain'].unique():
         if s in bkg:
             cmap[s] = '#7f7f7f'
         elif s == 'RBD':
@@ -133,7 +133,7 @@ def viz_traj(traj,atom_id_LUP, dfFeats,title_str,title_clr):
     
     # Display most important features
     fig1 = px.scatter_3d(coord_df, title=title_str, x='x', y='y', z='z',
-              color='Substructure',width=800,height=800,opacity=.9, template='simple_white',
+              color='Chain',width=800,height=800,opacity=.9, template='simple_white',
                          size = 'marker_size', color_discrete_map = cmap,
                 )
     
