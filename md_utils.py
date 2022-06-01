@@ -63,7 +63,7 @@ def load_traj(trajDir):
     psfFiles = glob.glob(os.path.join(trajDir,'*.psf'))
     
     # Load first dcd file
-    traj = md.load(dcdFiles[0], top = psfFiles[0])
+    traj = md.load_frame(dcdFiles[0],0, top = psfFiles[0])
     
     return traj
 
