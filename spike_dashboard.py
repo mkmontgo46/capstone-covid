@@ -22,7 +22,8 @@ if data_dir is None:
 traj_dirs = glob.glob(os.path.join(data_dir,'*TRAJECTOR*'))
 traj_opts = []
 for i in range(len(traj_dirs)):
-    traj_opts.append({'label': traj_dirs[i], 'value': traj_dirs[i]})
+    if len(glob.glob(os.path.join(traj_dirs[i],'results','*FinalExtractedFeature*.csv'))) > 0:
+        traj_opts.append({'label': traj_dirs[i], 'value': traj_dirs[i]})
     
 # Options for types of features to include
 feat_opts = [{'label':'RBD Distances','value':'RBD__2__'},
