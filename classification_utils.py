@@ -265,9 +265,9 @@ def trace_single_feat(df,f,title_clr,cmap):
     fig = go.Figure()
     fig = make_subplots(rows=1, cols=2, shared_yaxes=True, column_widths=[0.7, 0.3])
     for c in df_f1.columns:
-        fig.append_trace(go.Scatter(x=df_f1.index,y=df_f1[c],mode='lines', name='Closed', legendgroup='group1',showlegend=False,marker_color=closed_clr),1,1)
+        fig.append_trace(go.Scatter(x=df_f1.index,y=df_f1[c],mode='lines', name='Closed', legendgroup='group1',showlegend=False,marker_color=closed_clr, opacity=0.67),1,1)
     for c in df_f2.columns:
-        fig.append_trace(go.Scatter(x=df_f2.index,y=df_f2[c], mode='lines',name='Open',legendgroup='group2',showlegend=False,marker_color=open_clr),1,1)
+        fig.append_trace(go.Scatter(x=df_f2.index,y=df_f2[c], mode='lines',name='Open',legendgroup='group2',showlegend=False,marker_color=open_clr, opacity=0.67),1,1)
     
     
     # ------------ Combine w/ Histogram ----------------
