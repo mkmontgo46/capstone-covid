@@ -2,7 +2,9 @@
 Exploring COVID simulation data using AI
 
 ## Introduction
-The SpikeAnalytics project's goal is to leverage machine learning to mine COVID spike simulation data for insights. The analysis pipeline consists of two steps: feature extraction and the SpikeAnalytics dashboard. In the first step, molecular dynamics trajectory files are analyzed and features are extracted on a frame-by-frame basis. These feature sets are then used in the SpikeAnalytics dashboard to train an SGD classifier to predict whether the spike protein is open or closed in a given frame. The dashboard allows users to view not only the results of the model but also the details of the important features.
+The SpikeAnalytics project's goal is to leverage machine learning to mine COVID spike simulation data for insights. The analysis pipeline consists of two steps: feature extraction and the SpikeAnalytics dashboard. In the first step, molecular dynamics trajectory files are analyzed and features are extracted on a frame-by-frame basis. These feature sets are then used in the SpikeAnalytics dashboard to train an SGD classifier to predict whether the spike protein is open or closed in a given frame. The dashboard allows users to view not only the results of the model but also the details of the important features. 
+
+The github can be found at: https://github.com/mkmontgo46/capstone-covid
 
 ## Technical Requirements
 Need at least 32 GB of RAM
