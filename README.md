@@ -37,7 +37,7 @@ The SpikeAnalytics pipeline takes as input simulation data in folders with the w
     results/
     
     
-Finally the input data directory (in the above case, "./Spike_Dataset/") needs to be saved as an environment variable named SPIKEDATASET_DIR.
+Finally the input data directory (in the above case, "./Spike_Dataset/") needs to be saved as an environment variable named SPIKEDATASET_DIR. Datasets such as these can be downloaded from https://amarolab.ucsd.edu/covid19.php
 
 ## Local Installation
 Install miniconda for Linux. 
